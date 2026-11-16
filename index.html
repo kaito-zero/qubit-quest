@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Qubit Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* layout: one-column instrument console. The dial is the single bold object; everything around it stays quiet. */
+  --bg: #EDF0F7;
+  --surface: #FFFFFF;
+  --ink: #131A36;
+  --muted: #57608A;
+  --line: #D3D9EA;
+  --accent: #F0B429;
+  --accent-ink: #2B1E00;
+  --zero: #12859C;
+  --one: #CF3F74;
+  --good: #1E8E5A;
+  --font-display: "Do Hyeon", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0F1430; --surface: #182048; --ink: #E8ECFA; --muted: #9AA4CC; --line: #2B3566;
+    --accent: #F5C24F; --accent-ink: #2B1E00; --zero: #4FC4DA; --one: #F27FA8; --good: #5BD39A;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0F1430; --surface: #182048; --ink: #E8ECFA; --muted: #9AA4CC; --line: #2B3566;
+  --accent: #F5C24F; --accent-ink: #2B1E00; --zero: #4FC4DA; --one: #F27FA8; --good: #5BD39A;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+}
+code, pre, .mono { font-family: var(--font-mono); }
+code { font-size: 0.94em; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.app { max-width: 620px; margin: 0 auto; padding: 14px 16px 48px; display: grid; gap: 14px; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand {
+  font-family: var(--font-display); font-size: 24px; line-height: 1; letter-spacing: 0.01em;
+  color: inherit; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; border-radius: 8px;
+}
+.mark { width: 28px; height: 28px; flex: none; }
+.mark .m-ring { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.mark .m-z { stroke: var(--zero); stroke-width: 3; stroke-linecap: round; }
+.mark .m-o { stroke: var(--one); stroke-width: 3; stroke-linecap: round; }
+.mark .m-n { stroke: var(--ink); stroke-width: 2; stroke-linecap: round; }
+.mark .m-t { fill: var(--accent); stroke: var(--ink); stroke-width: 1.2; }
+.where { display: flex; align-items: center; gap: 10px; }
+.badge {
+  font-family: var(--font-display); font-size: 16px; line-height: 1;
+  background: var(--accent); color: var(--accent-ink); padding: 6px 10px 5px; border-radius: 6px;
+}
+.pips { display: flex; gap: 6px; }
+.pip {
+  width: 30px; height: 30px; border-radius: 8px; border: 2px solid var(--line); background: transparent;
+  font-family: var(--font-display); font-size: 16px; line-height: 1; color: var(--muted); cursor: pointer; padding: 0;
+}
+.pip.done { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.pip.now { border-color: var(--ink); color: var(--ink); }
+.pip.now.done { color: var(--accent-ink); }
+.pip:disabled { cursor: default; opacity: 0.55; }
+
+.board { display: grid; gap: 14px; }
+.board > *, .panel > *, .ctl > * { min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+
+.mission .stage-no { margin: 0 0 2px; font-size: 13.5px; color: var(--muted); }
+.mission h1 {
+  margin: 0 0 8px; font-family: var(--font-display); font-weight: 400;
+  font-size: 34px; line-height: 1.1; text-wrap: balance;
+}
+.mission .intro { margin: 0 0 12px; max-width: 34em; }
+.goals { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.goals li { display: flex; align-items: flex-start; gap: 10px; font-weight: 500; }
+.goals .box {
+  flex: none; width: 20px; height: 20px; margin-top: 3px; border-radius: 5px; border: 2px solid var(--muted);
+  display: grid; place-items: center;
+}
+.goals li.ok .box { background: var(--good); border-color: var(--good); }
+.goals li.ok .box::after {
+  content: ""; width: 9px; height: 5px; border-left: 2.5px solid var(--surface); border-bottom: 2.5px solid var(--surface);
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+.goals li.ok { color: var(--muted); }
+
+.predict { margin: 0 0 12px; display: grid; gap: 8px; }
+.predict p { margin: 0; font-weight: 500; }
+.choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice {
+  min-height: 44px; padding: 8px 14px; border-radius: 10px; border: 2px solid var(--line);
+  background: var(--surface); cursor: pointer;
+}
+.choice[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--surface); }
+.choice:disabled { cursor: default; opacity: 0.7; }
+
+.machine { display: grid; gap: 10px; }
+#dial { display: block; width: 100%; max-width: 300px; margin: 0 auto; height: auto; }
+#dial .ring { fill: none; stroke: var(--line); stroke-width: 1.5; }
+#dial .tick { stroke: var(--muted); stroke-width: 1; }
+#dial .axis { stroke: var(--line); stroke-width: 1.5; }
+#dial .lab { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); }
+#dial .lab.z { fill: var(--zero); font-weight: 500; }
+#dial .lab.o { fill: var(--one); font-weight: 500; }
+#dial .proj { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 4; }
+#dial .bar-z { stroke: var(--zero); stroke-width: 6; stroke-linecap: round; }
+#dial .bar-o { stroke: var(--one); stroke-width: 6; stroke-linecap: round; }
+#dial .needle { stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; }
+#dial .tip { fill: var(--accent); stroke: var(--ink); stroke-width: 2; }
+#dial .hub { fill: var(--ink); }
+
+.readout { display: grid; gap: 8px; }
+.state { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.state .k, .row .k { font-size: 14px; color: var(--muted); }
+.state code { font-size: clamp(19px, 5.6vw, 24px); font-weight: 500; font-variant-numeric: tabular-nums; }
+.row { display: grid; grid-template-columns: 7.2em 1fr 4.2em; align-items: center; gap: 10px; }
+.row .k b { font-weight: 600; }
+.row.z .k b { color: var(--zero); }
+.row.o .k b { color: var(--one); }
+.track { height: 12px; border-radius: 6px; background: var(--line); overflow: hidden; }
+.fill { height: 100%; width: 0; border-radius: 6px; transition: width 0.25s ease; }
+.row.z .fill { background: var(--zero); }
+.row.o .fill { background: var(--one); }
+.row .v { text-align: right; font-family: var(--font-mono); font-size: 15px; font-variant-numeric: tabular-nums; }
+.sum { margin: 0; font-family: var(--font-mono); font-size: 13.5px; color: var(--muted); }
+
+.controls { display: grid; gap: 14px; }
+.ctl { display: grid; gap: 8px; }
+.ctl > label, .ctl > .lbl { font-size: 14px; color: var(--muted); }
+.slide { display: grid; grid-template-columns: 48px 1fr 48px; gap: 8px; align-items: center; }
+.slide input[type="range"] { width: 100%; accent-color: var(--one); min-height: 44px; margin: 0; }
+.btn {
+  min-height: 48px; padding: 10px 16px; border-radius: 12px; border: 2px solid var(--ink);
+  background: var(--surface); font-weight: 600; cursor: pointer;
+}
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.small { min-height: 44px; padding: 6px 12px; font-weight: 500; border-color: var(--line); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn:active:not(:disabled), .gate:active:not(:disabled) { transform: translateY(1px); }
+.gates { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.gate {
+  width: 56px; height: 56px; border-radius: 12px; border: 2px solid var(--ink); background: var(--surface);
+  font-family: var(--font-display); font-size: 28px; line-height: 1; cursor: pointer; padding: 0;
+}
+.gate:disabled { opacity: 0.35; cursor: default; }
+.gates .spacer { flex: 1; }
+.rule { margin: 0; font-size: 14.5px; min-height: 1.6em; }
+.strip { display: flex; align-items: center; gap: 0; overflow-x: auto; padding: 4px 0; }
+.strip .wire { flex: none; width: 14px; height: 2px; background: var(--ink); }
+.strip .node {
+  flex: none; padding: 6px 9px; border-radius: 8px; border: 2px solid var(--ink);
+  font-family: var(--font-display); font-size: 18px; line-height: 1; background: var(--surface);
+}
+.strip .node.start, .strip .node.end { border-color: var(--line); color: var(--muted); font-family: var(--font-mono); font-size: 13px; }
+.trace { margin: 0; font-family: var(--font-mono); font-size: 13px; color: var(--muted); overflow-x: auto; white-space: nowrap; }
+.draws { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.draws.single { grid-template-columns: 1fr; }
+
+.result { display: grid; gap: 12px; }
+.tape { display: flex; flex-wrap: wrap; gap: 6px; min-height: 36px; align-items: center; }
+.tape .empty { color: var(--muted); font-size: 14.5px; }
+.chip {
+  width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center;
+  font-family: var(--font-mono); font-weight: 500; font-size: 18px; border: 2px solid transparent;
+}
+.chip.z { color: var(--zero); border-color: var(--zero); }
+.chip.o { color: var(--one); border-color: var(--one); }
+.chip.last { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.counts { display: grid; gap: 8px; }
+.counts .dict { margin: 0; font-family: var(--font-mono); font-size: 15px; }
+.note {
+  border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  background: var(--bg); max-width: 40em;
+}
+.note p { margin: 0; }
+.note p + p { margin-top: 6px; }
+
+.quiz { display: grid; gap: 14px; }
+.q { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; min-width: 0; }
+.q legend { padding: 0; font-weight: 600; margin-bottom: 8px; }
+.opts { display: grid; gap: 8px; }
+.opt {
+  text-align: left; min-height: 46px; padding: 9px 14px; border-radius: 10px; border: 2px solid var(--line);
+  background: var(--surface); cursor: pointer;
+}
+.opt.correct { border-color: var(--good); font-weight: 600; }
+.opt.wrong { border-color: var(--one); color: var(--muted); text-decoration: line-through; }
+.opt:disabled { cursor: default; }
+.why { margin: 0; font-size: 14.5px; color: var(--muted); }
+
+.clear h2 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 40px; line-height: 1.05; }
+.stars { font-size: 30px; letter-spacing: 4px; color: var(--accent); line-height: 1.2; }
+.clear ul { margin: 10px 0 14px; padding-left: 1.2em; display: grid; gap: 4px; }
+.clear .nextlv { margin: 0 0 14px; color: var(--muted); }
+
+.code h2, .journey h2 { margin: 0 0 8px; font-family: var(--font-display); font-weight: 400; font-size: 22px; line-height: 1.2; }
+.code p { margin: 0 0 8px; font-size: 14.5px; color: var(--muted); }
+.code pre {
+  margin: 0 0 10px; padding: 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line);
+  font-size: 13.5px; line-height: 1.55; overflow-x: auto;
+}
+.copyrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.copyrow span { font-size: 14px; color: var(--muted); }
+
+.home { display: grid; gap: 14px; }
+.home > * { min-width: 0; }
+.hero { padding: 24px 18px 22px; }
+.hero h1 {
+  margin: 0; font-family: var(--font-display); font-weight: 400;
+  font-size: clamp(50px, 15vw, 84px); line-height: 0.92; letter-spacing: -0.01em;
+}
+.hero .lead { margin: 12px 0 18px; max-width: 30em; }
+.startrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.btn.big { min-height: 58px; padding: 12px 30px; font-size: 19px; border-radius: 14px; }
+.startrow .sub { color: var(--muted); font-size: 14.5px; }
+.hint { margin: 0 0 4px; font-size: 14.5px; color: var(--muted); min-height: 1.6em; }
+.week { display: grid; gap: 8px; padding: 12px 0; border-top: 1px solid var(--line); }
+.week:first-child { border-top: 0; }
+.week:last-child { padding-bottom: 0; }
+.week h3 { margin: 0; font-size: 14px; font-weight: 600; color: var(--muted); }
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.day {
+  aspect-ratio: 1; min-width: 0; border-radius: 10px; border: 2px solid var(--line); background: transparent;
+  display: grid; place-items: center; align-content: center; gap: 2px; padding: 0; cursor: pointer;
+  font-family: var(--font-display); color: var(--muted);
+}
+.day .dn { font-size: clamp(16px, 4.8vw, 24px); line-height: 1; }
+.day .ds { font-family: var(--font-body); font-size: 11px; font-weight: 600; line-height: 1; }
+.day svg { width: 11px; height: 11px; }
+.day.locked { border-style: dashed; cursor: default; }
+.day.open { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+footer { font-size: 13.5px; color: var(--muted); }
+footer p { margin: 0; }
+
+@media (min-width: 900px) {
+  .app { max-width: 1000px; }
+  .board {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start;
+    grid-template-areas: "mission machine" "controls machine" "result code" "quiz quiz" "clear clear";
+  }
+  .mission { grid-area: mission; } .machine { grid-area: machine; } .controls { grid-area: controls; }
+  .result { grid-area: result; } .quiz { grid-area: quiz; } .clear { grid-area: clear; }
+  .code { grid-area: code; }
+  .home { max-width: 760px; width: 100%; margin: 0 auto; }
+  .days { gap: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fill { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top" id="top">
+    <a class="brand" href="#" id="homeLink" aria-label="Qubit Quest 처음 화면">
+      <svg class="mark" viewBox="0 0 28 28" aria-hidden="true"><circle class="m-ring" cx="14" cy="14" r="11"></circle><line class="m-z" x1="14" y1="14" x2="20.6" y2="14"></line><line class="m-o" x1="14" y1="14" x2="14" y2="5.2"></line><line class="m-n" x1="14" y1="14" x2="20.6" y2="5.2"></line><circle class="m-t" cx="20.6" cy="5.2" r="2.6"></circle></svg>
+      <span>Qubit Quest</span>
+    </a>
+    <div class="where" id="where">
+      <span class="badge">DAILY 1</span>
+      <nav class="pips" id="pips" aria-label="단계 이동"></nav>
+    </div>
+  </header>
+
+  <section class="home" id="home" aria-label="처음 화면">
+    <div class="hero panel">
+      <h1 id="homeTitle" tabindex="-1">Qubit Quest</h1>
+      <p class="lead">하루에 한 판, 직접 눌러 보며 배우는 양자컴퓨팅이에요. 설명을 읽는 대신 큐비트를 뽑고, 돌리고, 게이트를 걸어 봐요.</p>
+      <div class="startrow">
+        <button type="button" class="btn primary big" id="startBtn">시작하기</button>
+        <span class="sub" id="startSub">Daily 1 · 큐비트와 측정</span>
+      </div>
+    </div>
+    <div class="journey panel">
+      <h2>Daily 1부터 Daily 30까지</h2>
+      <p class="hint" id="dayHint" aria-live="polite">Daily 2부터는 준비되는 대로 하루에 하나씩 열려요.</p>
+      <div id="weeks"></div>
+    </div>
+  </section>
+
+  <main class="board" id="play">
+    <section class="mission panel" id="mission" aria-live="polite">
+      <p class="stage-no" id="stageNo"></p>
+      <h1 id="stageName" tabindex="-1"></h1>
+      <p class="intro" id="stageIntro"></p>
+      <div class="predict" id="predict" hidden>
+        <p id="predictLabel">H를 두 번 걸고 1,000번 뽑으면 어떻게 될까요?</p>
+        <div class="choices" role="group" aria-labelledby="predictLabel">
+          <button type="button" class="choice" id="predHalf" data-pred="half" aria-pressed="false">여전히 반반</button>
+          <button type="button" class="choice" id="predZero" data-pred="zero" aria-pressed="false">0만 나온다</button>
+          <button type="button" class="choice" id="predOne" data-pred="one" aria-pressed="false">1만 나온다</button>
+        </div>
+      </div>
+      <ul class="goals" id="goals"></ul>
+    </section>
+
+    <section class="machine panel" id="machine" aria-label="큐비트 상태">
+      <svg id="dial" viewBox="0 0 300 250" role="img" aria-labelledby="dialTitle dialDesc">
+        <title id="dialTitle">큐비트 상태 다이얼</title>
+        <desc id="dialDesc">화살표가 상태 [1, 0]을 가리킨다.</desc>
+        <circle class="ring" cx="150" cy="128" r="88"></circle>
+        <g id="ticks"></g>
+        <line class="axis" x1="54" y1="128" x2="246" y2="128"></line>
+        <line class="axis" x1="150" y1="32" x2="150" y2="224"></line>
+        <text class="lab z" x="250" y="132">[1, 0]</text>
+        <text class="lab o" x="150" y="24" text-anchor="middle">[0, 1]</text>
+        <text class="lab" x="50" y="132" text-anchor="end">[-1, 0]</text>
+        <text class="lab" x="150" y="242" text-anchor="middle">[0, -1]</text>
+        <line class="proj" id="projA" x1="238" y1="128" x2="238" y2="128"></line>
+        <line class="proj" id="projB" x1="238" y1="128" x2="150" y2="128"></line>
+        <line class="bar-z" id="barA" x1="150" y1="128" x2="238" y2="128"></line>
+        <line class="bar-o" id="barB" x1="150" y1="128" x2="150" y2="128"></line>
+        <line class="needle" id="needle" x1="150" y1="128" x2="238" y2="128"></line>
+        <circle class="hub" cx="150" cy="128" r="5"></circle>
+        <circle class="tip" id="tip" cx="238" cy="128" r="7"></circle>
+      </svg>
+      <div class="readout" aria-live="polite">
+        <div class="state"><span class="k">상태 [a, b]</span><code id="stateText">[1.000, 0.000]</code></div>
+        <div class="row z"><span class="k"><b>0</b>이 나올 확률</span><div class="track"><div class="fill" id="fillP0"></div></div><span class="v" id="valP0">100.0%</span></div>
+        <div class="row o"><span class="k"><b>1</b>이 나올 확률</span><div class="track"><div class="fill" id="fillP1"></div></div><span class="v" id="valP1">0.0%</span></div>
+        <p class="sum" id="sumLine"></p>
+      </div>
+    </section>
+
+    <section class="controls panel" id="controls" aria-label="조작">
+      <div class="ctl" id="ctlSlider" hidden>
+        <label for="angle">화살표 돌리기 <span class="mono" id="angleText">0°</span></label>
+        <div class="slide">
+          <button type="button" class="btn small" id="angleDown" aria-label="1도 내리기">−</button>
+          <input type="range" id="angle" min="0" max="90" step="1" value="0">
+          <button type="button" class="btn small" id="angleUp" aria-label="1도 올리기">+</button>
+        </div>
+      </div>
+      <div class="ctl" id="ctlGates" hidden>
+        <span class="lbl">게이트 걸기</span>
+        <div class="gates">
+          <button type="button" class="gate" id="gateX" data-gate="X" aria-label="X 게이트 걸기">X</button>
+          <button type="button" class="gate" id="gateH" data-gate="H" aria-label="H 게이트 걸기">H</button>
+          <button type="button" class="gate" id="gateZ" data-gate="Z" aria-label="Z 게이트 걸기">Z</button>
+          <span class="spacer"></span>
+          <button type="button" class="btn small" id="undoBtn">되돌리기</button>
+          <button type="button" class="btn small" id="clearBtn">지우기</button>
+        </div>
+        <p class="rule" id="rule" aria-live="polite"></p>
+        <div class="strip" id="strip" aria-label="지금 회로"></div>
+        <p class="trace" id="trace"></p>
+      </div>
+      <div class="ctl">
+        <div class="draws" id="draws">
+          <button type="button" class="btn" id="drawOne">1번 뽑기</button>
+          <button type="button" class="btn primary" id="drawMany">1,000번 뽑기</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="result panel" id="result" aria-live="polite" aria-label="결과">
+      <div class="tape" id="tape"></div>
+      <div class="counts" id="counts" hidden>
+        <div class="row z"><span class="k"><b>0</b>이 나온 횟수</span><div class="track"><div class="fill" id="fillC0"></div></div><span class="v" id="valC0">0</span></div>
+        <div class="row o"><span class="k"><b>1</b>이 나온 횟수</span><div class="track"><div class="fill" id="fillC1"></div></div><span class="v" id="valC1">0</span></div>
+        <p class="dict" id="dict"></p>
+      </div>
+      <div class="note" id="note" hidden></div>
+      <button type="button" class="btn primary" id="nextBtn" hidden>다음 단계로</button>
+    </section>
+
+    <section class="quiz panel" id="quiz" hidden aria-label="보스 문제"></section>
+
+    <section class="clear panel" id="clear" hidden aria-live="polite">
+      <h2>DAILY 1 클리어</h2>
+      <div class="stars" id="stars" aria-hidden="true"></div>
+      <p class="sr" id="starsText"></p>
+      <ul>
+        <li>큐비트는 측정하면 0 또는 1이 나오는 뽑기 기계다.</li>
+        <li>상태 [a, b]의 각 숫자를 제곱하면 확률이고, 합은 항상 1이다.</li>
+        <li>측정 전에는 결과를 알 수 없고, 확률만 정해져 있다.</li>
+        <li>게이트는 [a, b]를 정해진 규칙으로 바꾼다.</li>
+        <li>숫자는 음수가 될 수 있어서 서로 지워진다. 이것이 간섭이고, 동전 던지기와 다른 점이다.</li>
+      </ul>
+      <p class="nextlv">Daily 2는 복소수예요. 아직 준비 중이에요.</p>
+      <div class="copyrow">
+        <button type="button" class="btn primary" id="homeBtn">처음 화면으로</button>
+        <button type="button" class="btn" id="resetBtn">Daily 1 처음부터 다시 하기</button>
+      </div>
+    </section>
+
+    <section class="code panel" id="codeBox" aria-label="Qiskit 코드">
+      <h2>같은 실험을 Qiskit으로</h2>
+      <p>지금 화면의 설정을 파이썬 코드로 쓰면 이렇게 돼요.</p>
+      <pre id="code" tabindex="0"></pre>
+      <div class="copyrow">
+        <button type="button" class="btn small" id="copyBtn">코드 복사</button>
+        <span id="copyMsg" aria-live="polite"></span>
+      </div>
+    </section>
+
+  </main>
+
+  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 1까지 열려 있어요.</p></footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const SQ = Math.SQRT1_2;
+  const KEY = 'qubit-quest-v1';
+  const CX = 150, CY = 128, R = 88;
+
+  const tidy = v => {
+    if (Math.abs(v) < 1e-12) return 0;
+    if (Math.abs(Math.abs(v) - 1) < 1e-12) return Math.sign(v);
+    return v;
+  };
+
+  const GATES = {
+    X: { rule: 'X: [a, b] → [b, a]', say: '두 숫자를 맞바꿔요.', fn: ([a, b]) => [b, a], code: 'qc.x(0)' },
+    H: { rule: 'H: [a, b] → [(a + b)/√2, (a − b)/√2]', say: '[1, 0]에 걸면 정확히 반반이 돼요.', fn: ([a, b]) => [(a + b) * SQ, (a - b) * SQ], code: 'qc.h(0)' },
+    Z: { rule: 'Z: [a, b] → [a, −b]', say: '둘째 숫자의 부호만 뒤집어요.', fn: ([a, b]) => [a, -b], code: 'qc.z(0)' }
+  };
+
+  function runCircuit(circuit) {
+    let s = [1, 0];
+    const trace = [s];
+    for (const g of circuit) {
+      s = GATES[g].fn(s).map(tidy);
+      trace.push(s);
+    }
+    return trace;
+  }
+
+  const STAGES = [
+    { name: '뽑기 기계',
+      intro: '큐비트는 측정하면 0 또는 1이 나오는 뽑기 기계예요. 모든 큐비트는 <code>[1, 0]</code>이라는 설정에서 시작해요.',
+      goals: [{ text: '큐비트를 5번 뽑기', done: f => f.s0 >= 5 }] },
+    { name: '확률 설정',
+      intro: '큐비트의 상태는 숫자 두 개 <code>[a, b]</code>예요. a를 제곱하면 0이 나올 확률, b를 제곱하면 1이 나올 확률이에요. 슬라이더로 화살표를 돌려 보세요.',
+      goals: [
+        { text: '1이 나올 확률을 64%에 맞추기', done: (f, live) => f.s1 || !!live.near64 },
+        { text: '그 상태에서 1,000번 뽑기', done: f => f.s1 }] },
+    { name: '게이트',
+      intro: '실제 양자컴퓨터에서는 화살표를 손으로 돌리지 않아요. <code>[a, b]</code>를 정해진 규칙으로 바꾸는 게이트를 차례로 걸어요. X와 H를 써 보세요.',
+      goals: [
+        { text: '1만 나오는 회로를 만들어 1,000번 뽑기', done: f => f.s2one },
+        { text: '0과 1이 반반 나오는 회로를 만들어 1,000번 뽑기', done: f => f.s2half }] },
+    { name: '간섭',
+      intro: 'H를 한 번 걸면 반반이었어요. 동전은 한 번 더 던져도 반반이에요. H를 두 번 걸어도 반반일까요? 먼저 예측해 보세요.',
+      goals: [
+        { text: '결과 예측하기', done: f => !!f.s3predict },
+        { text: 'H를 두 번 걸고 1,000번 뽑기', done: f => f.s3hh },
+        { text: 'H, Z, H 순서로 걸고 1,000번 뽑기', done: f => f.s3hzh }] },
+    { name: 'Daily 1 보스',
+      intro: '배운 내용을 확인하는 문제 다섯 개예요. 모두 맞히면 Daily 1 클리어예요.',
+      goals: [{ text: '문제 5개 모두 맞히기', done: f => f.quiz }] }
+  ];
+
+  const QUIZ = [
+    { q: '상태가 [0.6, 0.8]일 때 1이 나올 확률은?', opts: ['36%', '60%', '64%', '80%'], a: 2,
+      why: '둘째 숫자를 제곱해요. 0.8 × 0.8 = 0.64, 즉 64%예요.' },
+    { q: '측정하기 전에 알 수 있는 것은?', opts: ['이번에 0이 나올지 1이 나올지', '각 결과가 나올 확률', '둘 다 알 수 있다'], a: 1,
+      why: '이번에 뭐가 나올지는 뽑기 전엔 알 수 없어요. 정해져 있는 건 확률이에요.' },
+    { q: '[1, 0]에서 시작해 H를 두 번 걸고 1,000번 측정하면?', opts: ['0과 1이 500번씩 근처로 나온다', '0만 1,000번 나온다', '1만 1,000번 나온다'], a: 1,
+      why: '두 번째 H에서 둘째 숫자가 (a − b)/√2 = 0이 되어 지워져요.' },
+    { q: 'QuantumCircuit(5, 1)로 만든 회로에서 쓸 수 있는 큐비트 번호는?', opts: ['1, 2, 3, 4, 5', '0, 1, 2, 3, 4', '0, 1, 2, 3, 4, 5'], a: 1,
+      why: '번호는 0부터 세요. 5개면 마지막이 4번이에요.' },
+    { q: '[0.707, 0.707]과 [0.707, -0.707]은 어떻게 다를까요?', opts: ['측정했을 때 나오는 확률이 다르다', '측정 확률은 같지만, H를 걸면 결과가 달라진다', '완전히 같은 상태다'], a: 1,
+      why: '제곱하면 둘 다 0.5씩이라 측정으로는 구분되지 않아요. H를 걸면 앞의 것은 0만, 뒤의 것은 1만 나와요.' }
+  ];
+
+  const WEEKS = ['1주 · 한 큐비트', '2주 · 여러 큐비트와 얽힘', '3주 · 회로와 프로토콜', '4주 · 첫 알고리즘', '5주 · 다음 알고리즘'];
+  const DAYS = [
+    '큐비트와 측정', '복소수: 크기와 위상', '상태 벡터와 디랙 표기법', '측정과 보른 규칙',
+    '행렬과 유니터리', '단일 큐비트 게이트 정리', '1주 차 복습',
+    '텐서곱과 두 큐비트', '2큐비트 게이트: CNOT, CZ, SWAP', '얽힘과 벨 상태', '부분 측정',
+    '실제 양자컴퓨터에서 실행', 'n큐비트 시뮬레이터', '2주 차 복습',
+    '양자 회로 읽고 쓰기', '내적, 직교, 사영', '전역 위상과 복제 불가 정리', '초밀집 부호화',
+    '양자 순간이동', '순간이동 구현', '3주 차 복습',
+    'CHSH 게임', '질의 모델과 오라클', '도이치 알고리즘', '도이치-조사 알고리즘',
+    '번스타인-바지라니 문제', '캡스톤: 브라우저 시뮬레이터', '4주 회고',
+    'Simon 알고리즘', '위상 추정 맛보기'
+  ];
+  const LOCK = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" rx="1.2" fill="currentColor"></rect><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>';
+
+  const freshFlags = () => ({ s0: 0, s1: false, s2one: false, s2half: false, s3predict: '', s3hh: false, s3hzh: false,
+    quiz: false, right: [false, false, false, false, false], mistakes: 0 });
+  const freshT = () => ({ deg: 0, circuit: [], tape: [], counts: null, note: '', rule: '', wrong: QUIZ.map(() => []) });
+
+  let S = { stage: 0, f: freshFlags() };
+  let T = freshT();
+  const viewFromHash = () => (location.hash === '#daily-1' ? 'play' : 'home');
+  let view = viewFromHash();
+
+  function stateNow() {
+    if (S.stage === 1) {
+      const r = T.deg * Math.PI / 180;
+      return [tidy(Math.cos(r)), tidy(Math.sin(r))];
+    }
+    if (S.stage === 2 || S.stage === 3) return runCircuit(T.circuit).pop();
+    return [1, 0];
+  }
+  const live = () => ({ near64: S.stage === 1 && Math.abs(stateNow()[1] ** 2 - 0.64) <= 0.015 });
+  const stageDone = i => STAGES[i].goals.every(g => g.done(S.f, i === S.stage ? live() : {}));
+  const goalsDone = i => STAGES[i].goals.every(g => g.done(S.f, {}));
+  function unlocked() {
+    let i = 0;
+    while (i < STAGES.length - 1 && goalsDone(i)) i++;
+    return i;
+  }
+  const starCount = () => (S.f.mistakes === 0 ? 3 : S.f.mistakes <= 2 ? 2 : 1);
+  const fmt = v => (Object.is(v, -0) ? 0 : v).toFixed(3);
+  const stateText = s => `[${fmt(s[0])}, ${fmt(s[1])}]`;
+  const shortText = s => '[' + s.map(v => {
+    const t = (Math.round(v * 1000) / 1000).toString();
+    return t === '-0' ? '0' : t;
+  }).join(', ') + ']';
+
+  /* dial */
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let shown = 0, target = 0, raf = 0;
+  function paintDial(ang) {
+    const a = Math.cos(ang), b = Math.sin(ang);
+    const x = CX + a * R, y = CY - b * R;
+    const set = (el, attrs) => { for (const k in attrs) el.setAttribute(k, attrs[k].toFixed ? attrs[k].toFixed(2) : attrs[k]); };
+    set($('needle'), { x2: x, y2: y });
+    set($('tip'), { cx: x, cy: y });
+    set($('barA'), { x2: x });
+    set($('barB'), { y2: y });
+    set($('projA'), { x1: x, y1: y, x2: x, y2: CY });
+    set($('projB'), { x1: x, y1: y, x2: CX, y2: y });
+  }
+  function step() {
+    let d = target - shown;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    if (Math.abs(d) < 0.003) { shown = target; paintDial(shown); raf = 0; return; }
+    shown += d * 0.22;
+    paintDial(shown);
+    raf = requestAnimationFrame(step);
+  }
+  function setAngle(ang, snap) {
+    target = ang;
+    if (snap || reduce) { if (raf) cancelAnimationFrame(raf); raf = 0; shown = ang; paintDial(ang); return; }
+    if (!raf) raf = requestAnimationFrame(step);
+  }
+  (function ticks() {
+    let h = '';
+    for (let d = 0; d < 360; d += 15) {
+      const r = d * Math.PI / 180, len = d % 90 === 0 ? 10 : 5;
+      const x1 = CX + Math.cos(r) * (R - len), y1 = CY - Math.sin(r) * (R - len);
+      const x2 = CX + Math.cos(r) * R, y2 = CY - Math.sin(r) * R;
+      h += `<line class="tick" x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"></line>`;
+    }
+    $('ticks').innerHTML = h;
+  })();
+
+  /* judging a 1,000-shot run */
+  const predLabel = { half: '여전히 반반', zero: '0만 나온다', one: '1만 나온다' };
+  function judge(p1, zero, one) {
+    const key = T.circuit.join('');
+    if (S.stage === 1) {
+      if (Math.abs(p1 - 0.64) <= 0.015) {
+        S.f.s1 = true;
+        return `<p>1이 ${one}번 나왔어요. 640번 근처죠. 이때 상태는 <code>[0.6, 0.8]</code> 근처예요.</p>
+          <p>0.6² + 0.8² = 0.36 + 0.64 = 1. 두 숫자를 제곱해 더하면 항상 1이라서, 화살표 끝은 늘 원 위에 있어요.</p>`;
+      }
+      return `<p>1이 ${one}번 나왔어요. 목표는 640번 근처예요. 슬라이더로 1이 나올 확률을 64%에 맞춘 뒤 다시 뽑아 보세요.</p>`;
+    }
+    if (S.stage === 2) {
+      if (p1 > 1 - 1e-9) {
+        S.f.s2one = true;
+        return `<p>1만 1,000번 나왔어요. 지금 상태는 <code>[0, 1]</code>이에요. X는 두 숫자를 맞바꿔서 <code>[1, 0]</code>을 이렇게 뒤집어요.</p>`;
+      }
+      if (Math.abs(p1 - 0.5) < 1e-9) {
+        S.f.s2half = true;
+        return `<p>0이 ${zero}번, 1이 ${one}번 나왔어요. 두 숫자의 크기가 같아서 확률은 정확히 반반이에요.</p>
+          <p>뽑을 때마다 횟수가 조금씩 달라지는 건 뽑기가 랜덤이라서예요.</p>`;
+      }
+      if (p1 < 1e-9) return `<p>0만 1,000번 나왔어요. 게이트를 걸어 설정을 바꿔 보세요.</p>`;
+      return `<p>0이 ${zero}번, 1이 ${one}번 나왔어요.</p>`;
+    }
+    if (S.stage === 3) {
+      if (key === 'HH') {
+        const firstTime = !S.f.s3hh;
+        S.f.s3hh = true;
+        const verdict = S.f.s3predict === 'zero'
+          ? '예측이 맞았어요.'
+          : `예측은 "${predLabel[S.f.s3predict]}"였죠. 실제로는 0만 나왔어요.`;
+        return `<p>${verdict} 1,000번 모두 0이에요.</p>
+          <p>두 번째 H에서 둘째 숫자가 (0.707 − 0.707)/√2 = 0이 되어, 1이 나올 길이 지워졌어요. 확률은 더해지기만 하지만 큐비트의 숫자는 서로 지울 수 있어요. 이걸 간섭이라고 해요.</p>
+          ${firstTime ? '<p>새 게이트 Z가 열렸어요. 둘째 숫자의 부호만 뒤집는 게이트예요.</p>' : ''}`;
+      }
+      if (key === 'HZH' && S.f.s3hh) {
+        S.f.s3hzh = true;
+        return `<p>이번엔 1만 1,000번 나왔어요. Z가 바꾼 건 부호 하나뿐이에요.</p>
+          <p>H, Z까지만 걸면 <code>[0.707, -0.707]</code>이라 측정은 여전히 반반이에요. 그런데 그 부호가 다음 H의 결과를 0에서 1로 뒤집었어요. 부호는 측정에 보이지 않지만 계산 결과를 바꿔요.</p>`;
+      }
+      if (key === 'HZ') return `<p>0이 ${zero}번, 1이 ${one}번. 여전히 반반이에요. 부호가 바뀐 건 측정에 보이지 않아요. H를 하나 더 걸어 보세요.</p>`;
+      if (p1 < 1e-9) return `<p>0만 1,000번 나왔어요.</p>`;
+      if (p1 > 1 - 1e-9) return `<p>1만 1,000번 나왔어요.</p>`;
+      return `<p>0이 ${zero}번, 1이 ${one}번 나왔어요.</p>`;
+    }
+    return '';
+  }
+
+  /* actions */
+  function changed() { T.tape = []; T.counts = null; T.note = ''; }
+  function drawOne() {
+    const p1 = stateNow()[1] ** 2;
+    T.tape.push(Math.random() < p1 ? 1 : 0);
+    if (T.tape.length > 14) T.tape.shift();
+    if (S.stage === 0) {
+      S.f.s0 += 1;
+      T.note = S.f.s0 >= 5
+        ? `<p>${S.f.s0}번 모두 0이 나왔어요. <code>[1, 0]</code>은 0만 나오는 설정이라 몇 번을 뽑아도 같아요.</p><p>이 설정을 바꾸는 방법을 다음 단계에서 배워요.</p>`
+        : `<p>${S.f.s0}번 뽑았어요. 5번까지 뽑아 보세요.</p>`;
+    }
+    render();
+  }
+  function drawMany() {
+    const p1 = stateNow()[1] ** 2;
+    let one = 0;
+    for (let i = 0; i < 1000; i++) if (Math.random() < p1) one++;
+    T.counts = { zero: 1000 - one, one };
+    T.note = judge(p1, 1000 - one, one);
+    render();
+  }
+  function addGate(g) {
+    if (S.stage === 3 && !S.f.s3predict) { T.rule = '먼저 위에서 예측을 골라 주세요.'; render(); return; }
+    if (T.circuit.length >= 6) { T.rule = '게이트는 6개까지 걸 수 있어요. 되돌리기나 지우기를 눌러 주세요.'; render(); return; }
+    T.circuit.push(g);
+    T.rule = `${GATES[g].rule}. ${GATES[g].say}`;
+    changed();
+    render();
+  }
+  function go(i) {
+    if (i < 0 || i > unlocked()) return;
+    S.stage = i;
+    const keepWrong = T.wrong;
+    T = freshT();
+    T.wrong = keepWrong;
+    render(true);
+    const h = $('stageName');
+    if (h && h.scrollIntoView) { h.focus({ preventScroll: true }); $('mission').scrollIntoView({ block: 'start' }); }
+  }
+
+  /* rendering */
+  function renderQuiz() {
+    const box = $('quiz');
+    if (!box.dataset.built) {
+      box.innerHTML = QUIZ.map((q, i) => `
+        <fieldset class="q" id="q${i}">
+          <legend>${i + 1}. ${q.q}</legend>
+          <div class="opts">${q.opts.map((o, j) => `<button type="button" class="opt" id="q${i}o${j}" data-q="${i}" data-o="${j}">${o}</button>`).join('')}</div>
+          <p class="why" id="q${i}why" aria-live="polite"></p>
+        </fieldset>`).join('');
+      box.dataset.built = '1';
+    }
+    QUIZ.forEach((q, i) => {
+      const right = S.f.right[i];
+      q.opts.forEach((_, j) => {
+        const b = $(`q${i}o${j}`);
+        const wrong = T.wrong[i].includes(j);
+        b.classList.toggle('correct', right && j === q.a);
+        b.classList.toggle('wrong', wrong);
+        b.disabled = right || wrong;
+      });
+      $(`q${i}why`).textContent = right ? `정답이에요. ${q.why}` : (T.wrong[i].length ? '아니에요. 다시 골라 보세요.' : '');
+    });
+  }
+
+  function codeText() {
+    const lines = ['from qiskit import QuantumCircuit', 'from qiskit_aer import AerSimulator', '', 'qc = QuantumCircuit(1, 1)'];
+    if (S.stage === 1 && T.deg > 0) lines.push(`qc.ry(${(2 * T.deg * Math.PI / 180).toFixed(4)}, 0)`);
+    if (S.stage === 2 || S.stage === 3) T.circuit.forEach(g => lines.push(GATES[g].code));
+    lines.push('qc.measure(0, 0)', '', 'counts = AerSimulator().run(qc, shots=1000).result().get_counts()', 'print(counts)');
+    return lines.join('\n');
+  }
+
+  function renderHome() {
+    const cleared = STAGES.filter((_, k) => goalsDone(k)).length;
+    const started = cleared > 0 || S.f.s0 > 0;
+    const stars = '★'.repeat(starCount());
+    $('startBtn').textContent = S.f.quiz ? 'Daily 1 다시 보기' : (started ? '이어서 하기' : '시작하기');
+    $('startSub').textContent = S.f.quiz ? `Daily 1 클리어 ${stars}` : (started ? `Daily 1 진행 중 ${cleared}/${STAGES.length}` : 'Daily 1 · 큐비트와 측정');
+    const box = $('weeks');
+    if (!box.dataset.built) {
+      let h = '';
+      WEEKS.forEach((w, wi) => {
+        h += `<section class="week"><h3>${w}</h3><div class="days">` + DAYS.slice(wi * 7, wi * 7 + 7).map((t, k) => {
+          const n = wi * 7 + k + 1;
+          return n === 1
+            ? `<button type="button" class="day open" data-day="1" aria-label="Daily 1: ${t}"><span class="dn">1</span><span class="ds" id="day1s"></span></button>`
+            : `<button type="button" class="day locked" data-day="${n}" aria-disabled="true" aria-label="Daily ${n}: ${t} (잠김)"><span class="dn">${n}</span>${LOCK}</button>`;
+        }).join('') + '</div></section>';
+      });
+      box.innerHTML = h;
+      box.dataset.built = '1';
+    }
+    $('day1s').textContent = S.f.quiz ? stars : (started ? `${cleared}/${STAGES.length}` : '열림');
+  }
+
+  function render(snap) {
+    $('home').hidden = view !== 'home';
+    $('play').hidden = view !== 'play';
+    $('top').hidden = view !== 'play';
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* progress just is not kept */ }
+    if (view === 'home') { renderHome(); return; }
+    const i = S.stage, st = STAGES[i], quizStage = i === 4;
+    const unl = unlocked(), lv = live();
+
+    $('pips').innerHTML = STAGES.map((s, k) => {
+      const cls = ['pip', k === i ? 'now' : '', goalsDone(k) ? 'done' : ''].join(' ').trim();
+      return `<button type="button" class="${cls}" data-go="${k}" ${k > unl ? 'disabled' : ''} ${k === i ? 'aria-current="step"' : ''} aria-label="${k + 1}단계 ${s.name}">${k + 1}</button>`;
+    }).join('');
+
+    $('stageNo').textContent = `${i + 1}단계 / ${STAGES.length}단계`;
+    $('stageName').textContent = st.name;
+    $('stageIntro').innerHTML = st.intro;
+    $('goals').innerHTML = st.goals.map(g => {
+      const ok = g.done(S.f, lv);
+      return `<li class="${ok ? 'ok' : ''}"><span class="box" aria-hidden="true"></span><span>${g.text}<span class="sr"> ${ok ? '(완료)' : '(아직)'}</span></span></li>`;
+    }).join('');
+
+    $('predict').hidden = i !== 3;
+    ['half', 'zero', 'one'].forEach(p => {
+      const b = $('pred' + p[0].toUpperCase() + p.slice(1));
+      b.setAttribute('aria-pressed', String(S.f.s3predict === p));
+      b.disabled = S.f.s3hh;
+    });
+
+    $('machine').hidden = quizStage;
+    $('controls').hidden = quizStage;
+    $('result').hidden = quizStage;
+    $('codeBox').hidden = quizStage;
+    $('quiz').hidden = !quizStage || S.f.quiz;
+    $('clear').hidden = !(quizStage && S.f.quiz);
+
+    if (!quizStage) {
+      const s = stateNow(), p0 = s[0] ** 2, p1 = s[1] ** 2;
+      $('stateText').textContent = stateText(s);
+      $('dialDesc').textContent = `화살표가 상태 ${shortText(s)}을 가리킨다.`;
+      $('fillP0').style.width = (p0 * 100).toFixed(1) + '%';
+      $('fillP1').style.width = (p1 * 100).toFixed(1) + '%';
+      $('valP0').textContent = (p0 * 100).toFixed(1) + '%';
+      $('valP1').textContent = (p1 * 100).toFixed(1) + '%';
+      $('sumLine').textContent = i === 0 ? '' : `a² + b² = ${p0.toFixed(3)} + ${p1.toFixed(3)} = 1`;
+      setAngle(Math.atan2(s[1], s[0]), snap);
+
+      $('ctlSlider').hidden = i !== 1;
+      $('angle').value = String(T.deg);
+      $('angleText').textContent = `${T.deg}°`;
+
+      const gateStage = i === 2 || i === 3;
+      $('ctlGates').hidden = !gateStage;
+      if (gateStage) {
+        $('gateZ').hidden = i !== 3;
+        $('gateZ').disabled = !S.f.s3hh;
+        $('gateZ').setAttribute('aria-label', S.f.s3hh ? 'Z 게이트 걸기' : 'Z 게이트 (H 두 번 실험 뒤에 열려요)');
+        $('undoBtn').disabled = T.circuit.length === 0;
+        $('clearBtn').disabled = T.circuit.length === 0;
+        $('rule').textContent = T.rule || (i === 3 && !S.f.s3predict ? '먼저 위에서 예측을 골라 주세요.' : '게이트를 눌러 회로에 추가하세요.');
+        const trace = runCircuit(T.circuit);
+        $('strip').innerHTML = '<span class="node start">[1, 0]</span>' +
+          T.circuit.map(g => `<span class="wire"></span><span class="node">${g}</span>`).join('') +
+          '<span class="wire"></span><span class="node end">측정</span>';
+        $('trace').textContent = trace.map((s2, k) => (k === 0 ? '시작 ' : `${T.circuit[k - 1]} `) + shortText(s2)).join('  →  ');
+      }
+      $('drawMany').hidden = i === 0;
+      $('draws').classList.toggle('single', i === 0);
+
+      $('tape').innerHTML = T.tape.length
+        ? T.tape.map((v, k) => `<span class="chip ${v ? 'o' : 'z'} ${k === T.tape.length - 1 ? 'last' : ''}">${v}</span>`).join('') +
+          `<span class="sr">방금 뽑은 결과는 ${T.tape[T.tape.length - 1]}</span>`
+        : '<span class="empty">아직 뽑지 않았어요. 버튼을 눌러 큐비트를 측정해 보세요.</span>';
+      $('tape').hidden = !T.tape.length && !!T.counts;
+      $('counts').hidden = !T.counts;
+      if (T.counts) {
+        $('fillC0').style.width = (T.counts.zero / 10) + '%';
+        $('fillC1').style.width = (T.counts.one / 10) + '%';
+        $('valC0').textContent = String(T.counts.zero);
+        $('valC1').textContent = String(T.counts.one);
+        const parts = [];
+        if (T.counts.zero) parts.push(`'0': ${T.counts.zero}`);
+        if (T.counts.one) parts.push(`'1': ${T.counts.one}`);
+        $('dict').textContent = `Qiskit 출력 형식: {${parts.join(', ')}}`;
+      }
+      $('note').hidden = !T.note;
+      $('note').innerHTML = T.note;
+      $('nextBtn').hidden = !stageDone(i);
+      $('nextBtn').textContent = i === 3 ? '보스 문제 풀기' : '다음 단계로';
+      $('code').textContent = codeText();
+    } else {
+      renderQuiz();
+      if (S.f.quiz) {
+        const n = starCount();
+        $('stars').textContent = '★'.repeat(n) + '☆'.repeat(3 - n);
+        $('starsText').textContent = `별 3개 중 ${n}개`;
+      }
+    }
+
+  }
+
+  /* views: the start screen, and Daily 1 at #daily-1 */
+  function setView(v) {
+    view = v;
+    const want = v === 'play' ? '#daily-1' : '';
+    try { if (location.hash !== want && !(want === '' && !location.hash)) location.hash = want; } catch (e) { /* the in-page view still changes */ }
+    render(true);
+    window.scrollTo(0, 0);
+    const h = $(v === 'play' ? 'stageName' : 'homeTitle');
+    if (h) h.focus({ preventScroll: true });
+  }
+  window.addEventListener('hashchange', () => { const v = viewFromHash(); if (v !== view) { view = v; render(true); } });
+  $('startBtn').addEventListener('click', () => setView('play'));
+  $('homeLink').addEventListener('click', e => { e.preventDefault(); setView('home'); });
+  $('homeBtn').addEventListener('click', () => setView('home'));
+  $('weeks').addEventListener('click', e => {
+    const b = e.target.closest('[data-day]');
+    if (!b) return;
+    const n = Number(b.dataset.day);
+    if (n === 1) { setView('play'); return; }
+    $('dayHint').textContent = `Daily ${n} · ${DAYS[n - 1]}. 아직 잠겨 있어요.`;
+  });
+
+  /* events */
+  $('pips').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b && !b.disabled) go(Number(b.dataset.go)); });
+  $('drawOne').addEventListener('click', drawOne);
+  $('drawMany').addEventListener('click', drawMany);
+  $('nextBtn').addEventListener('click', () => go(S.stage + 1));
+  $('angle').addEventListener('input', e => { T.deg = Number(e.target.value); changed(); render(true); });
+  $('angleDown').addEventListener('click', () => { T.deg = Math.max(0, T.deg - 1); changed(); render(true); });
+  $('angleUp').addEventListener('click', () => { T.deg = Math.min(90, T.deg + 1); changed(); render(true); });
+  $('ctlGates').addEventListener('click', e => { const b = e.target.closest('[data-gate]'); if (b && !b.disabled) addGate(b.dataset.gate); });
+  $('undoBtn').addEventListener('click', () => { T.circuit.pop(); T.rule = ''; changed(); render(); });
+  $('clearBtn').addEventListener('click', () => { T.circuit = []; T.rule = ''; changed(); render(); });
+  $('predict').addEventListener('click', e => {
+    const b = e.target.closest('[data-pred]');
+    if (!b || b.disabled) return;
+    S.f.s3predict = b.dataset.pred;
+    T.rule = '';
+    render();
+  });
+  $('quiz').addEventListener('click', e => {
+    const b = e.target.closest('[data-q]');
+    if (!b || b.disabled) return;
+    const q = Number(b.dataset.q), o = Number(b.dataset.o);
+    if (o === QUIZ[q].a) S.f.right[q] = true;
+    else { T.wrong[q].push(o); S.f.mistakes += 1; }
+    if (S.f.right.every(Boolean)) S.f.quiz = true;
+    render();
+    if (S.f.quiz) $('clear').scrollIntoView({ block: 'start' });
+  });
+  $('resetBtn').addEventListener('click', () => {
+    S = { stage: 0, f: freshFlags() };
+    T = freshT();
+    render(true);
+    $('mission').scrollIntoView({ block: 'start' });
+  });
+  $('copyBtn').addEventListener('click', () => {
+    const done = ok => { $('copyMsg').textContent = ok ? '복사했어요.' : '복사하지 못했어요. 코드를 길게 눌러 직접 복사해 주세요.'; };
+    try { navigator.clipboard.writeText(codeText()).then(() => done(true), () => done(false)); } catch (e) { done(false); }
+  });
+
+  /* boot: keep a viewer's place across a republish, else restore saved progress */
+  function start(data) {
+    let saved = data && data.S ? data.S : null;
+    if (!saved) { try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { saved = null; } }
+    if (saved && saved.f) {
+      S = { stage: 0, f: Object.assign(freshFlags(), saved.f) };
+      if (!Array.isArray(S.f.right) || S.f.right.length !== QUIZ.length) S.f.right = freshFlags().right;
+      S.stage = Math.min(Math.max(0, Number(saved.stage) || 0), unlocked());
+    }
+    if (data && data.T) { T.deg = Number(data.T.deg) || 0; T.circuit = (data.T.circuit || []).filter(g => GATES[g]); }
+    render(true);
+  }
+  const hot = window.claude && window.claude.hot;
+  if (hot && hot.snapshot) hot.snapshot(() => ({ S, T: { deg: T.deg, circuit: T.circuit } }));
+  if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
+})();
+</script>
+</body>
+</html>
