@@ -124,10 +124,38 @@ button { font: inherit; color: inherit; }
 #dial .tip { fill: var(--accent); stroke: var(--ink); stroke-width: 2; }
 #dial .hub { fill: var(--ink); }
 
+/* Daily 2 drawings share the dial's vocabulary: ink needle, saffron tip, teal for 0, rose for 1 */
+#viz { display: block; width: 100%; max-width: 320px; margin: 0 auto; height: auto; }
+#viz .grid { stroke: var(--line); stroke-width: 1; }
+#viz .axis { stroke: var(--muted); stroke-width: 1.2; }
+#viz .ring { fill: none; stroke: var(--line); stroke-width: 1.5; }
+#viz .orbit { fill: none; stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 4; }
+#viz .base { stroke: var(--line); stroke-width: 1.5; }
+#viz .lab { font-family: var(--font-mono); font-size: 11px; fill: var(--muted); }
+#viz .cap { font-family: var(--font-body); font-size: 12px; fill: var(--muted); }
+#viz .ttl { font-family: var(--font-body); font-size: 13px; font-weight: 600; fill: var(--ink); }
+#viz .leg { stroke: var(--muted); stroke-width: 1.5; stroke-dasharray: 4 3; }
+#viz .ghost { stroke: var(--muted); stroke-width: 2; stroke-linecap: round; }
+#viz .ghost-tip { fill: var(--surface); stroke: var(--muted); stroke-width: 1.5; }
+#viz .arc { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+#viz .needle { stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; }
+#viz .tip { fill: var(--accent); stroke: var(--ink); stroke-width: 2; }
+#viz .hub { fill: var(--ink); }
+#viz .nz { stroke: var(--zero); stroke-width: 4.5; stroke-linecap: round; }
+#viz .no { stroke: var(--one); stroke-width: 4.5; stroke-linecap: round; }
+#viz .fz { fill: var(--zero); }
+#viz .fo { fill: var(--one); }
+#viz .walk { stroke: var(--ink); stroke-width: 1.5; }
+#viz .fw { fill: var(--ink); }
+
 .readout { display: grid; gap: 8px; }
 .state { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
-.state .k, .row .k { font-size: 14px; color: var(--muted); }
+.state .k, .row .k, .kv .k { font-size: 14px; color: var(--muted); }
 .state code { font-size: clamp(19px, 5.6vw, 24px); font-weight: 500; font-variant-numeric: tabular-nums; }
+.state code.long { font-size: clamp(13.5px, 4.1vw, 18px); }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 16px; }
+.kv > div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.kv .v { font-family: var(--font-mono); font-size: 15px; font-variant-numeric: tabular-nums; }
 .row { display: grid; grid-template-columns: 7.2em 1fr 4.2em; align-items: center; gap: 10px; }
 .row .k b { font-weight: 600; }
 .row.z .k b { color: var(--zero); }
@@ -144,6 +172,7 @@ button { font: inherit; color: inherit; }
 .ctl > label, .ctl > .lbl { font-size: 14px; color: var(--muted); }
 .slide { display: grid; grid-template-columns: 48px 1fr 48px; gap: 8px; align-items: center; }
 .slide input[type="range"] { width: 100%; accent-color: var(--one); min-height: 44px; margin: 0; }
+.slide.plain input[type="range"] { accent-color: var(--ink); }
 .btn {
   min-height: 48px; padding: 10px 16px; border-radius: 12px; border: 2px solid var(--ink);
   background: var(--surface); font-weight: 600; cursor: pointer;
@@ -243,6 +272,7 @@ button { font: inherit; color: inherit; }
 .day .ds { font-family: var(--font-body); font-size: 11px; font-weight: 600; line-height: 1; }
 .day svg { width: 11px; height: 11px; }
 .day.locked { border-style: dashed; cursor: default; }
+.day.locked.ready { border-style: solid; border-color: var(--muted); }
 .day.open { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 footer { font-size: 13.5px; color: var(--muted); }
 footer p { margin: 0; }
@@ -272,7 +302,7 @@ footer p { margin: 0; }
       <span>Qubit Quest</span>
     </a>
     <div class="where" id="where">
-      <span class="badge">DAILY 1</span>
+      <span class="badge" id="badge">DAILY 1</span>
       <nav class="pips" id="pips" aria-label="단계 이동"></nav>
     </div>
   </header>
@@ -288,7 +318,7 @@ footer p { margin: 0; }
     </div>
     <div class="journey panel">
       <h2>Daily 1부터 Daily 30까지</h2>
-      <p class="hint" id="dayHint" aria-live="polite">Daily 2부터는 준비되는 대로 하루에 하나씩 열려요.</p>
+      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 3부터는 준비되는 대로 추가돼요.</p>
       <div id="weeks"></div>
     </div>
   </section>
@@ -299,17 +329,13 @@ footer p { margin: 0; }
       <h1 id="stageName" tabindex="-1"></h1>
       <p class="intro" id="stageIntro"></p>
       <div class="predict" id="predict" hidden>
-        <p id="predictLabel">H를 두 번 걸고 1,000번 뽑으면 어떻게 될까요?</p>
-        <div class="choices" role="group" aria-labelledby="predictLabel">
-          <button type="button" class="choice" id="predHalf" data-pred="half" aria-pressed="false">여전히 반반</button>
-          <button type="button" class="choice" id="predZero" data-pred="zero" aria-pressed="false">0만 나온다</button>
-          <button type="button" class="choice" id="predOne" data-pred="one" aria-pressed="false">1만 나온다</button>
-        </div>
+        <p id="predictLabel"></p>
+        <div class="choices" id="choices" role="group" aria-labelledby="predictLabel"></div>
       </div>
       <ul class="goals" id="goals"></ul>
     </section>
 
-    <section class="machine panel" id="machine" aria-label="큐비트 상태">
+    <section class="machine panel" id="machine" aria-label="지금 상태">
       <svg id="dial" viewBox="0 0 300 250" role="img" aria-labelledby="dialTitle dialDesc">
         <title id="dialTitle">큐비트 상태 다이얼</title>
         <desc id="dialDesc">화살표가 상태 [1, 0]을 가리킨다.</desc>
@@ -329,10 +355,21 @@ footer p { margin: 0; }
         <circle class="hub" cx="150" cy="128" r="5"></circle>
         <circle class="tip" id="tip" cx="238" cy="128" r="7"></circle>
       </svg>
+      <svg id="viz" viewBox="0 0 300 264" role="img" aria-labelledby="vizTitle vizDesc" hidden>
+        <title id="vizTitle">복소수 화살표</title>
+        <desc id="vizDesc"></desc>
+        <g id="vizBody"></g>
+      </svg>
       <div class="readout" aria-live="polite">
-        <div class="state"><span class="k">상태 [a, b]</span><code id="stateText">[1.000, 0.000]</code></div>
-        <div class="row z"><span class="k"><b>0</b>이 나올 확률</span><div class="track"><div class="fill" id="fillP0"></div></div><span class="v" id="valP0">100.0%</span></div>
-        <div class="row o"><span class="k"><b>1</b>이 나올 확률</span><div class="track"><div class="fill" id="fillP1"></div></div><span class="v" id="valP1">0.0%</span></div>
+        <div class="state"><span class="k" id="stateKey">상태 [a, b]</span><code id="stateText">[1.000, 0.000]</code></div>
+        <div class="kv" id="kv" hidden>
+          <div><span class="k">가로 (실수부)</span><span class="v" id="kvRe"></span></div>
+          <div><span class="k">세로 (허수부)</span><span class="v" id="kvIm"></span></div>
+          <div><span class="k">크기 (길이)</span><span class="v" id="kvAbs"></span></div>
+          <div><span class="k">위상 (각도)</span><span class="v" id="kvArg"></span></div>
+        </div>
+        <div class="row z" id="rowP0"><span class="k"><b>0</b>이 나올 확률</span><div class="track"><div class="fill" id="fillP0"></div></div><span class="v" id="valP0">100.0%</span></div>
+        <div class="row o" id="rowP1"><span class="k"><b>1</b>이 나올 확률</span><div class="track"><div class="fill" id="fillP1"></div></div><span class="v" id="valP1">0.0%</span></div>
         <p class="sum" id="sumLine"></p>
       </div>
     </section>
@@ -360,7 +397,49 @@ footer p { margin: 0; }
         <div class="strip" id="strip" aria-label="지금 회로"></div>
         <p class="trace" id="trace"></p>
       </div>
-      <div class="ctl">
+      <div class="ctl" id="ctlXY" hidden>
+        <label for="reIn">가로 (실수부) <span class="mono" id="reText">2</span></label>
+        <div class="slide plain">
+          <button type="button" class="btn small" id="reDown" aria-label="가로 1 줄이기">−</button>
+          <input type="range" id="reIn" min="-5" max="5" step="1" value="2">
+          <button type="button" class="btn small" id="reUp" aria-label="가로 1 늘리기">+</button>
+        </div>
+        <label for="imIn">세로 (허수부) <span class="mono" id="imText">1</span></label>
+        <div class="slide plain">
+          <button type="button" class="btn small" id="imDown" aria-label="세로 1 줄이기">−</button>
+          <input type="range" id="imIn" min="-5" max="5" step="1" value="1">
+          <button type="button" class="btn small" id="imUp" aria-label="세로 1 늘리기">+</button>
+        </div>
+        <div class="gates">
+          <button type="button" class="btn small" id="conjBtn">켤레로 뒤집기</button>
+        </div>
+      </div>
+      <div class="ctl" id="ctlRot" hidden>
+        <span class="lbl">곱해서 돌리기</span>
+        <div class="gates">
+          <button type="button" class="btn" id="mulBtn"><code>1j</code> 곱하기</button>
+          <span class="spacer"></span>
+          <button type="button" class="btn small" id="rotReset">처음으로</button>
+        </div>
+        <label for="rotIn">돌릴 각도 <span class="mono" id="rotText">0°</span></label>
+        <div class="slide plain">
+          <button type="button" class="btn small" id="rotDown" aria-label="5도 줄이기">−</button>
+          <input type="range" id="rotIn" min="0" max="360" step="5" value="0">
+          <button type="button" class="btn small" id="rotUp" aria-label="5도 늘리기">+</button>
+        </div>
+      </div>
+      <div class="ctl" id="ctlPh" hidden>
+        <label for="phIn">둘째 숫자 돌리기: P 게이트의 각도 <span class="mono" id="phText">0°</span></label>
+        <div class="slide">
+          <button type="button" class="btn small" id="phDown" aria-label="5도 줄이기">−</button>
+          <input type="range" id="phIn" min="0" max="360" step="5" value="0">
+          <button type="button" class="btn small" id="phUp" aria-label="5도 늘리기">+</button>
+        </div>
+        <p class="rule" id="phRule" aria-live="polite"></p>
+        <div class="strip" id="strip2" aria-label="지금 회로"></div>
+        <p class="trace" id="trace2"></p>
+      </div>
+      <div class="ctl" id="ctlDraws">
         <div class="draws" id="draws">
           <button type="button" class="btn" id="drawOne">1번 뽑기</button>
           <button type="button" class="btn primary" id="drawMany">1,000번 뽑기</button>
@@ -382,26 +461,21 @@ footer p { margin: 0; }
     <section class="quiz panel" id="quiz" hidden aria-label="보스 문제"></section>
 
     <section class="clear panel" id="clear" hidden aria-live="polite">
-      <h2>DAILY 1 클리어</h2>
+      <h2 id="clearTitle">DAILY 1 클리어</h2>
       <div class="stars" id="stars" aria-hidden="true"></div>
       <p class="sr" id="starsText"></p>
-      <ul>
-        <li>큐비트는 측정하면 0 또는 1이 나오는 뽑기 기계다.</li>
-        <li>상태 [a, b]의 각 숫자를 제곱하면 확률이고, 합은 항상 1이다.</li>
-        <li>측정 전에는 결과를 알 수 없고, 확률만 정해져 있다.</li>
-        <li>게이트는 [a, b]를 정해진 규칙으로 바꾼다.</li>
-        <li>숫자는 음수가 될 수 있어서 서로 지워진다. 이것이 간섭이고, 동전 던지기와 다른 점이다.</li>
-      </ul>
-      <p class="nextlv">Daily 2는 복소수예요. 아직 준비 중이에요.</p>
+      <ul id="learned"></ul>
+      <p class="nextlv" id="nextLv"></p>
       <div class="copyrow">
+        <button type="button" class="btn primary" id="nextDayBtn" hidden>다음 판 시작하기</button>
         <button type="button" class="btn primary" id="homeBtn">처음 화면으로</button>
-        <button type="button" class="btn" id="resetBtn">Daily 1 처음부터 다시 하기</button>
+        <button type="button" class="btn" id="resetBtn">처음부터 다시 하기</button>
       </div>
     </section>
 
-    <section class="code panel" id="codeBox" aria-label="Qiskit 코드">
-      <h2>같은 실험을 Qiskit으로</h2>
-      <p>지금 화면의 설정을 파이썬 코드로 쓰면 이렇게 돼요.</p>
+    <section class="code panel" id="codeBox" aria-label="파이썬 코드">
+      <h2 id="codeTitle">같은 실험을 Qiskit으로</h2>
+      <p id="codeLead">지금 화면의 설정을 파이썬 코드로 쓰면 이렇게 돼요.</p>
       <pre id="code" tabindex="0"></pre>
       <div class="copyrow">
         <button type="button" class="btn small" id="copyBtn">코드 복사</button>
@@ -411,15 +485,18 @@ footer p { margin: 0; }
 
   </main>
 
-  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 1까지 열려 있어요.</p></footer>
+  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 2까지 만들어져 있어요.</p></footer>
 </div>
 
 <script>
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const SQ = Math.SQRT1_2;
-  const KEY = 'qubit-quest-v1';
+  const hide = (el, off) => { if (off) el.setAttribute('hidden', ''); else el.removeAttribute('hidden'); };
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
+  const SQ = Math.SQRT1_2, RAD = Math.PI / 180;
+  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1' };
+  const BUILT = 2;
   const CX = 150, CY = 128, R = 88;
 
   const tidy = v => {
@@ -428,6 +505,7 @@ footer p { margin: 0; }
     return v;
   };
 
+  /* ---------- Daily 1: 큐비트와 측정 ---------- */
   const GATES = {
     X: { rule: 'X: [a, b] → [b, a]', say: '두 숫자를 맞바꿔요.', fn: ([a, b]) => [b, a], code: 'qc.x(0)' },
     H: { rule: 'H: [a, b] → [(a + b)/√2, (a − b)/√2]', say: '[1, 0]에 걸면 정확히 반반이 돼요.', fn: ([a, b]) => [(a + b) * SQ, (a - b) * SQ], code: 'qc.h(0)' },
@@ -444,7 +522,7 @@ footer p { margin: 0; }
     return trace;
   }
 
-  const STAGES = [
+  const STAGES1 = [
     { name: '뽑기 기계',
       intro: '큐비트는 측정하면 0 또는 1이 나오는 뽑기 기계예요. 모든 큐비트는 <code>[1, 0]</code>이라는 설정에서 시작해요.',
       goals: [{ text: '큐비트를 5번 뽑기', done: f => f.s0 >= 5 }] },
@@ -460,6 +538,8 @@ footer p { margin: 0; }
         { text: '0과 1이 반반 나오는 회로를 만들어 1,000번 뽑기', done: f => f.s2half }] },
     { name: '간섭',
       intro: 'H를 한 번 걸면 반반이었어요. 동전은 한 번 더 던져도 반반이에요. H를 두 번 걸어도 반반일까요? 먼저 예측해 보세요.',
+      predict: { label: 'H를 두 번 걸고 1,000번 뽑으면 어떻게 될까요?', key: 's3predict', lock: f => f.s3hh,
+        opts: [['half', '여전히 반반'], ['zero', '0만 나온다'], ['one', '1만 나온다']] },
       goals: [
         { text: '결과 예측하기', done: f => !!f.s3predict },
         { text: 'H를 두 번 걸고 1,000번 뽑기', done: f => f.s3hh },
@@ -469,7 +549,7 @@ footer p { margin: 0; }
       goals: [{ text: '문제 5개 모두 맞히기', done: f => f.quiz }] }
   ];
 
-  const QUIZ = [
+  const QUIZ1 = [
     { q: '상태가 [0.6, 0.8]일 때 1이 나올 확률은?', opts: ['36%', '60%', '64%', '80%'], a: 2,
       why: '둘째 숫자를 제곱해요. 0.8 × 0.8 = 0.64, 즉 64%예요.' },
     { q: '측정하기 전에 알 수 있는 것은?', opts: ['이번에 0이 나올지 1이 나올지', '각 결과가 나올 확률', '둘 다 알 수 있다'], a: 1,
@@ -481,6 +561,78 @@ footer p { margin: 0; }
     { q: '[0.707, 0.707]과 [0.707, -0.707]은 어떻게 다를까요?', opts: ['측정했을 때 나오는 확률이 다르다', '측정 확률은 같지만, H를 걸면 결과가 달라진다', '완전히 같은 상태다'], a: 1,
       why: '제곱하면 둘 다 0.5씩이라 측정으로는 구분되지 않아요. H를 걸면 앞의 것은 0만, 뒤의 것은 1만 나와요.' }
   ];
+
+  const fresh1 = () => ({ s0: 0, s1: false, s2one: false, s2half: false, s3predict: '', s3hh: false, s3hzh: false,
+    quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
+
+  /* ---------- Daily 2: 복소수, 크기와 위상 ---------- */
+  const STAGES2 = [
+    { name: '화살표',
+      intro: 'Daily 1에서 배열의 숫자는 <code>+</code> 아니면 <code>-</code>였어요. 이번에는 숫자에 방향이 생겨요. 방향이 있는 숫자를 복소수라고 하고, 가로와 세로 두 값으로 써요. <code>3 + 4j</code>는 오른쪽으로 3칸, 위로 4칸이에요.',
+      goals: [
+        { text: '화살표 끝을 <code>3 + 4j</code>에 놓기', done: f => f.a1 },
+        { text: '켤레로 뒤집어 보기', done: f => f.a2 },
+        { text: '왼쪽을 향하는 수 만들기 (위상 180°)', done: f => f.a3 }] },
+    { name: '곱하면 돈다',
+      intro: '복소수끼리 곱하면 길이는 곱해지고 각도는 더해져요. 그래서 길이가 1인 수를 곱하면 길이는 그대로고 돌기만 해요. <code>1j</code>는 길이 1, 각도 90°인 수예요.',
+      goals: [
+        { text: '<code>1j</code>를 곱해 90° 돌리기', done: f => f.b1 },
+        { text: '한 번 더 곱해 정반대 방향 만들기', done: f => f.b2 },
+        { text: '돌릴 각도를 60°에 맞추기', done: f => f.b3 }] },
+    { name: '보이지 않는 방향',
+      intro: '큐비트 상태 <code>[a, b]</code>의 숫자도 복소수예요. 확률은 숫자의 길이를 제곱한 값이에요. H를 건 상태 <code>[0.707, 0.707]</code>에서 둘째 숫자의 방향만 돌려 볼게요. 이 일을 하는 게이트가 P예요.',
+      predict: { label: '둘째 숫자의 방향을 돌리면 1이 나올 확률은 어떻게 될까요?', key: 'c0', lock: f => f.cSeen,
+        opts: [['up', '늘어난다'], ['down', '줄어든다'], ['same', '그대로다']] },
+      goals: [
+        { text: '결과 예측하기', done: f => !!f.c0 },
+        { text: '둘째 숫자를 90° 돌리고 1,000번 뽑기', done: f => f.c1 },
+        { text: '180° 돌리고 1,000번 뽑기', done: f => f.c2 }] },
+    { name: '각도로 확률 바꾸기',
+      intro: '방향은 뽑기에 보이지 않았어요. 그런데 H를 한 번 더 걸면 달라져요. H는 두 숫자를 더한 것과 뺀 것을 만들어요. 같은 방향이면 합쳐지고, 반대 방향이면 지워져요.',
+      goals: [
+        { text: '0만 나오게 맞추고 1,000번 뽑기', done: f => f.d1 },
+        { text: '1만 나오게 맞추고 1,000번 뽑기', done: f => f.d2 },
+        { text: '0이 750번 근처로 나오게 맞추고 1,000번 뽑기', done: f => f.d3 }] },
+    { name: 'Daily 2 보스',
+      intro: '배운 내용을 확인하는 문제 다섯 개예요. 모두 맞히면 Daily 2 클리어예요.',
+      goals: [{ text: '문제 5개 모두 맞히기', done: f => f.quiz }] }
+  ];
+
+  const QUIZ2 = [
+    { q: '<code>3 + 4j</code>의 크기는?', opts: ['3', '4', '5', '7'], a: 2,
+      why: '가로 3, 세로 4인 직각삼각형의 빗변이에요. √(3×3 + 4×4) = 5.' },
+    { q: '어떤 복소수에 <code>1j</code>를 곱하면?', opts: ['길이가 2배가 된다', '길이는 그대로고 90° 돈다', '세로의 부호가 뒤집힌다'], a: 1,
+      why: '1j는 길이 1, 각도 90°인 수예요. 곱하면 길이는 곱해지고 각도는 더해져요.' },
+    { q: '<code>1j * 1j</code>의 값은?', opts: ['1', '-1', '2j'], a: 1,
+      why: '90°를 두 번 돌면 180°예요. 길이 1에 각도 180°인 수는 -1이에요.' },
+    { q: '상태 <code>[0.707, 0.707j]</code>를 측정하면 1이 나올 확률은?', opts: ['0%', '50%', '70.7%', '100%'], a: 1,
+      why: '확률은 크기를 제곱한 값이에요. 0.707j의 크기는 0.707이고, 제곱하면 0.5예요.' },
+    { q: 'H, P(각도), H 회로에서 P의 각도를 0°에서 180°로 바꾸면?', opts: ['측정 결과는 그대로다', '0만 나오다가 1만 나오게 된다', '반반으로 바뀐다'], a: 1,
+      why: '둘째 숫자가 정반대 방향이 돼서, 더한 쪽이 지워지고 뺀 쪽이 합쳐져요.' }
+  ];
+
+  const fresh2 = () => ({ a1: false, a2: false, a3: false, b1: false, b2: false, b3: false,
+    c0: '', cSeen: false, c1: false, c2: false, d1: false, d2: false, d3: false,
+    quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
+
+  const LEVELS = {
+    1: { title: '큐비트와 측정', stages: STAGES1, quiz: QUIZ1, fresh: fresh1, touched: f => f.s0 > 0,
+      learned: [
+        '큐비트는 측정하면 0 또는 1이 나오는 뽑기 기계다.',
+        '상태 [a, b]의 각 숫자를 제곱하면 확률이고, 합은 항상 1이다.',
+        '측정 전에는 결과를 알 수 없고, 확률만 정해져 있다.',
+        '게이트는 [a, b]를 정해진 규칙으로 바꾼다.',
+        '숫자는 음수가 될 수 있어서 서로 지워진다. 이것이 간섭이고, 동전 던지기와 다른 점이다.'],
+      next: 'Daily 2가 열렸어요. 숫자에 방향이 생기는 복소수예요.' },
+    2: { title: '복소수: 크기와 위상', stages: STAGES2, quiz: QUIZ2, fresh: fresh2, touched: f => f.a1 || f.a2 || f.a3,
+      learned: [
+        '복소수는 가로(실수부)와 세로(허수부)로 된 수다. 화살표로 보면 크기와 위상이 있다.',
+        '곱하면 길이는 곱해지고 각도는 더해진다. 1j는 90°, -1은 180° 회전이다.',
+        '켤레는 세로만 뒤집은 수이고, 자기 켤레와 곱하면 크기의 제곱이 된다.',
+        '큐비트의 확률은 숫자의 크기를 제곱한 값이다.',
+        '위상은 측정에 보이지 않지만, 다음 게이트가 두 숫자를 더하고 뺄 때 결과를 바꾼다. 이것이 간섭이다.'],
+      next: 'Daily 3은 상태 벡터와 디랙 표기법이에요. 아직 준비 중이에요.' }
+  };
 
   const WEEKS = ['1주 · 한 큐비트', '2주 · 여러 큐비트와 얽힘', '3주 · 회로와 프로토콜', '4주 · 첫 알고리즘', '5주 · 다음 알고리즘'];
   const DAYS = [
@@ -496,32 +648,39 @@ footer p { margin: 0; }
   ];
   const LOCK = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" rx="1.2" fill="currentColor"></rect><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>';
 
-  const freshFlags = () => ({ s0: 0, s1: false, s2one: false, s2half: false, s3predict: '', s3hh: false, s3hzh: false,
-    quiz: false, right: [false, false, false, false, false], mistakes: 0 });
-  const freshT = () => ({ deg: 0, circuit: [], tape: [], counts: null, note: '', rule: '', wrong: QUIZ.map(() => []) });
-
-  let S = { stage: 0, f: freshFlags() };
+  /* ---------- progress: one record per day, plus what is on screen right now ---------- */
+  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() } };
+  let day = 1, S = P[1], LV = LEVELS[1];
+  const freshT = () => ({ deg: 0, circuit: [], tape: [], counts: null, note: '', rule: '',
+    wrong: LV.quiz.map(() => []), x: 2, y: 1, rot: 0, ph: 0 });
   let T = freshT();
-  const viewFromHash = () => (location.hash === '#daily-1' ? 'play' : 'home');
-  let view = viewFromHash();
+  let view = 'home';
+
+  const cleared = n => !!(P[n].f.cleared || P[n].f.quiz);
+  const dayOpen = n => n >= 1 && n <= BUILT && (n === 1 || cleared(n - 1));
+  const focusDay = () => { let n = 1; while (n < BUILT && cleared(n)) n++; return n; };
+  const goalsDoneFor = (n, i) => LEVELS[n].stages[i].goals.every(g => g.done(P[n].f, {}));
+  const goalsDone = i => goalsDoneFor(day, i);
+  function unlockedFor(n) {
+    const st = LEVELS[n].stages;
+    let i = 0;
+    while (i < st.length - 1 && goalsDoneFor(n, i)) i++;
+    return i;
+  }
+  const unlocked = () => unlockedFor(day);
+  const starsFor = n => (P[n].f.mistakes === 0 ? 3 : P[n].f.mistakes <= 2 ? 2 : 1);
+  const predText = (st, k) => ((st.predict.opts.find(o => o[0] === k) || [])[1] || '');
 
   function stateNow() {
     if (S.stage === 1) {
-      const r = T.deg * Math.PI / 180;
+      const r = T.deg * RAD;
       return [tidy(Math.cos(r)), tidy(Math.sin(r))];
     }
     if (S.stage === 2 || S.stage === 3) return runCircuit(T.circuit).pop();
     return [1, 0];
   }
-  const live = () => ({ near64: S.stage === 1 && Math.abs(stateNow()[1] ** 2 - 0.64) <= 0.015 });
-  const stageDone = i => STAGES[i].goals.every(g => g.done(S.f, i === S.stage ? live() : {}));
-  const goalsDone = i => STAGES[i].goals.every(g => g.done(S.f, {}));
-  function unlocked() {
-    let i = 0;
-    while (i < STAGES.length - 1 && goalsDone(i)) i++;
-    return i;
-  }
-  const starCount = () => (S.f.mistakes === 0 ? 3 : S.f.mistakes <= 2 ? 2 : 1);
+  const live = () => ({ near64: day === 1 && S.stage === 1 && Math.abs(stateNow()[1] ** 2 - 0.64) <= 0.015 });
+  const stageDone = i => LV.stages[i].goals.every(g => g.done(S.f, i === S.stage ? live() : {}));
   const fmt = v => (Object.is(v, -0) ? 0 : v).toFixed(3);
   const stateText = s => `[${fmt(s[0])}, ${fmt(s[1])}]`;
   const shortText = s => '[' + s.map(v => {
@@ -529,7 +688,33 @@ footer p { margin: 0; }
     return t === '-0' ? '0' : t;
   }).join(', ') + ']';
 
-  /* dial */
+  /* ---------- Daily 2 arithmetic: a complex number is [가로, 세로] ---------- */
+  const cabs = z => Math.hypot(z[0], z[1]);
+  const cargDeg = z => ((Math.atan2(z[1], z[0]) / RAD) % 360 + 360) % 360;
+  const expi = deg => [tidy(Math.cos(deg * RAD)), tidy(Math.sin(deg * RAD))];
+  const cmul = (p, q) => [p[0] * q[0] - p[1] * q[1], p[0] * q[1] + p[1] * q[0]];
+  const num = (v, d) => { const k = 10 ** d, r = Math.round(v * k) / k; return String(r === 0 ? 0 : r); };
+  const cWide = z => `${num(z[0], 2)} ${Math.round(z[1] * 100) / 100 < 0 ? '-' : '+'} ${num(Math.abs(z[1]), 2)}j`;
+  const cTight = z => {
+    const r = Math.round(z[0] * 1000) / 1000, i = Math.round(z[1] * 1000) / 1000;
+    if (i === 0) return String(r === 0 ? 0 : r);
+    if (r === 0) return `${i}j`;
+    return `${r}${i < 0 ? '-' : '+'}${Math.abs(i)}j`;
+  };
+  const arr = s => `[${cTight(s[0])}, ${cTight(s[1])}]`;
+
+  function d2() {
+    const i = S.stage;
+    if (i === 0) return { z: [T.x, T.y] };
+    if (i === 1) return { z: cmul([3, 4], expi(T.rot % 360)) };
+    const e = expi(T.ph % 360), a = [SQ, 0], b = [SQ * e[0], SQ * e[1]];
+    if (i === 2) return { e, a, b, s: [a, b], p0: 0.5, p1: 0.5 };
+    const f = [(1 + e[0]) / 2, e[1] / 2], g = [(1 - e[0]) / 2, -e[1] / 2];
+    return { e, a, b, f, g, s: [f, g], p0: f[0] ** 2 + f[1] ** 2, p1: g[0] ** 2 + g[1] ** 2 };
+  }
+  const p1Now = () => (day === 1 ? stateNow()[1] ** 2 : d2().p1);
+
+  /* ---------- dial (Daily 1) ---------- */
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let shown = 0, target = 0, raf = 0;
   function paintDial(ang) {
@@ -559,7 +744,7 @@ footer p { margin: 0; }
   (function ticks() {
     let h = '';
     for (let d = 0; d < 360; d += 15) {
-      const r = d * Math.PI / 180, len = d % 90 === 0 ? 10 : 5;
+      const r = d * RAD, len = d % 90 === 0 ? 10 : 5;
       const x1 = CX + Math.cos(r) * (R - len), y1 = CY - Math.sin(r) * (R - len);
       const x2 = CX + Math.cos(r) * R, y2 = CY - Math.sin(r) * R;
       h += `<line class="tick" x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"></line>`;
@@ -567,8 +752,117 @@ footer p { margin: 0; }
     $('ticks').innerHTML = h;
   })();
 
-  /* judging a 1,000-shot run */
-  const predLabel = { half: '여전히 반반', zero: '0만 나온다', one: '1만 나온다' };
+  /* ---------- drawings (Daily 2) ---------- */
+  const ln = (c, x1, y1, x2, y2) => `<line class="${c}" x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"></line>`;
+  const dot = (c, x, y, r) => `<circle class="${c}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r}"></circle>`;
+  const txt = (c, x, y, s, anchor) => `<text class="${c}" x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ''}>${s}</text>`;
+  function head(c, x1, y1, x2, y2, s) {
+    const a = Math.atan2(y2 - y1, x2 - x1);
+    const pt = d => `${(x2 - s * Math.cos(a + d)).toFixed(1)},${(y2 - s * Math.sin(a + d)).toFixed(1)}`;
+    return `<polygon class="${c}" points="${x2.toFixed(1)},${y2.toFixed(1)} ${pt(-0.42)} ${pt(0.42)}"></polygon>`;
+  }
+  function arc(cx, cy, r, deg) {
+    const A = ((deg % 360) + 360) % 360;
+    if (A < 0.5 || A > 359.5) return '';
+    const ex = cx + r * Math.cos(A * RAD), ey = cy - r * Math.sin(A * RAD);
+    return `<path class="arc" d="M ${cx + r} ${cy} A ${r} ${r} 0 ${A > 180 ? 1 : 0} 0 ${ex.toFixed(1)} ${ey.toFixed(1)}"></path>`;
+  }
+
+  /* a grid where one square is 1: the arrow from the middle to [가로, 세로] */
+  function vizPlane(z, ghost) {
+    const cx = 150, cy = 138, u = 22, far = 5 * u;
+    let h = '';
+    for (let k = -5; k <= 5; k++) {
+      if (!k) continue;
+      h += ln('grid', cx + k * u, cy - far, cx + k * u, cy + far) + ln('grid', cx - far, cy - k * u, cx + far, cy - k * u);
+    }
+    h += ln('axis', cx - far - 10, cy, cx + far + 10, cy) + ln('axis', cx, cy - far - 10, cx, cy + far + 10);
+    h += txt('lab', cx + far + 14, cy + 4, '가로') + txt('lab', cx, 12, '세로', 'middle');
+    if (ghost) {
+      const gx = cx + ghost[0] * u, gy = cy - ghost[1] * u;
+      h += `<circle class="orbit" cx="${cx}" cy="${cy}" r="${(cabs(ghost) * u).toFixed(1)}"></circle>`;
+      h += ln('ghost', cx, cy, gx, gy) + dot('ghost-tip', gx, gy, 5);
+    }
+    const px = cx + z[0] * u, py = cy - z[1] * u;
+    h += ln('leg', cx, cy, px, cy) + ln('leg', px, cy, px, py);
+    if (cabs(z) > 1e-9) h += arc(cx, cy, 20, cargDeg(z));
+    h += ln('needle', cx, cy, px, py) + dot('hub', cx, cy, 4.5) + dot('tip', px, py, 7);
+    return h;
+  }
+
+  /* the two numbers of the state, each on its own circle of radius 1 */
+  function vizPair(d) {
+    const r = 62, cy = 92, c1 = 80, c2 = 220;
+    let h = txt('ttl', c1, 16, '첫째 숫자 a', 'middle') + txt('ttl', c2, 16, '둘째 숫자 b', 'middle');
+    [c1, c2].forEach(c => {
+      h += `<circle class="ring" cx="${c}" cy="${cy}" r="${r}"></circle>` + ln('grid', c - r, cy, c + r, cy) + ln('grid', c, cy - r, c, cy + r);
+    });
+    const ax = c1 + d.a[0] * r, bx = c2 + d.b[0] * r, by = cy - d.b[1] * r;
+    h += ln('nz', c1, cy, ax, cy) + dot('hub', c1, cy, 4) + dot('fz', ax, cy, 6);
+    h += arc(c2, cy, 16, T.ph) + ln('no', c2, cy, bx, by) + dot('hub', c2, cy, 4) + dot('fo', bx, by, 6);
+    h += txt('lab', c1, 174, cTight(d.a), 'middle') + txt('lab', c2, 174, cTight(d.b), 'middle');
+    return h;
+  }
+
+  /* H adds and subtracts the two numbers: walk a, then walk b (or its reverse), and see how far you got */
+  function vizWalk(d) {
+    const U = 120, oy = 104, o1 = 20, o2 = 160;
+    let h = txt('ttl', o1 + U / 2, 18, '더하기 (a + b)', 'middle') + txt('ttl', o2 + U / 2, 18, '빼기 (a − b)', 'middle');
+    const panel = (o, sx, sy, lineCls, dotCls) => {
+      const mx = o + U / 2, ex = mx + (U / 2) * sx, ey = oy - (U / 2) * sy;
+      let s = ln('base', o, oy, o + U, oy) + `<circle class="orbit" cx="${mx}" cy="${oy}" r="${U / 2}"></circle>`;
+      if (Math.hypot(ex - o, ey - oy) > 1.5) s += ln(lineCls, o, oy, ex, ey);
+      s += ln('walk', o, oy, mx - 5, oy) + head('fw', o, oy, mx, oy, 7);
+      s += ln('walk', mx, oy, ex - sx * 5, ey + sy * 5) + head('fw', mx, oy, ex, ey, 7);
+      s += dot('hub', o, oy, 3.5) + dot(dotCls, ex, ey, 5.5);
+      return s;
+    };
+    h += panel(o1, d.e[0], d.e[1], 'nz', 'fz') + panel(o2, -d.e[0], -d.e[1], 'no', 'fo');
+    h += txt('cap', o1 + U / 2, 184, `거리 ${num(Math.sqrt(d.p0), 3)}`, 'middle') + txt('cap', o2 + U / 2, 184, `거리 ${num(Math.sqrt(d.p1), 3)}`, 'middle');
+    return h;
+  }
+
+  let raf2 = 0;
+  function paintViz(spinDeg) {
+    const i = S.stage, d = d2();
+    let box = '0 0 300 264', title = '복소수 화살표', body = '', desc = '';
+    if (i === 0) {
+      body = vizPlane(d.z);
+      desc = `화살표가 ${cWide(d.z)}를 가리킨다. 크기 ${num(cabs(d.z), 2)}.`;
+    } else if (i === 1) {
+      const z = spinDeg === undefined ? d.z : cmul([3, 4], [Math.cos(spinDeg * RAD), Math.sin(spinDeg * RAD)]);
+      body = vizPlane(z, [3, 4]);
+      desc = `3 + 4j를 ${T.rot}도 돌린 화살표가 ${cWide(d.z)}를 가리킨다.`;
+    } else if (i === 2) {
+      box = '0 0 300 182'; title = '상태의 두 숫자';
+      body = vizPair(d);
+      desc = `첫째 숫자는 ${cTight(d.a)}, 둘째 숫자는 ${cTight(d.b)}. 두 화살표의 길이는 같다.`;
+    } else {
+      box = '0 0 300 192'; title = '두 숫자를 더한 것과 뺀 것';
+      body = vizWalk(d);
+      desc = `더한 쪽의 거리는 ${num(Math.sqrt(d.p0), 3)}, 뺀 쪽의 거리는 ${num(Math.sqrt(d.p1), 3)}.`;
+    }
+    $('viz').setAttribute('viewBox', box);
+    $('vizTitle').textContent = title;
+    $('vizDesc').textContent = desc;
+    $('vizBody').innerHTML = body;
+  }
+  function stopSpin() { if (raf2) { cancelAnimationFrame(raf2); raf2 = 0; } }
+  function spin(from, to) {
+    stopSpin();
+    if (reduce) return;
+    let t0 = null;
+    const frame = ts => {
+      if (t0 === null) t0 = ts;
+      if (view !== 'play' || day !== 2 || S.stage !== 1) { raf2 = 0; return; }
+      const p = Math.min(1, (ts - t0) / 420), e = 1 - Math.pow(1 - p, 3);
+      if (p < 1) { paintViz(from + (to - from) * e); raf2 = requestAnimationFrame(frame); }
+      else { raf2 = 0; paintViz(); }
+    };
+    raf2 = requestAnimationFrame(frame);
+  }
+
+  /* ---------- judging a 1,000-shot run ---------- */
   function judge(p1, zero, one) {
     const key = T.circuit.join('');
     if (S.stage === 1) {
@@ -598,7 +892,7 @@ footer p { margin: 0; }
         S.f.s3hh = true;
         const verdict = S.f.s3predict === 'zero'
           ? '예측이 맞았어요.'
-          : `예측은 "${predLabel[S.f.s3predict]}"였죠. 실제로는 0만 나왔어요.`;
+          : `예측은 "${predText(LV.stages[3], S.f.s3predict)}"였죠. 실제로는 0만 나왔어요.`;
         return `<p>${verdict} 1,000번 모두 0이에요.</p>
           <p>두 번째 H에서 둘째 숫자가 (0.707 − 0.707)/√2 = 0이 되어, 1이 나올 길이 지워졌어요. 확률은 더해지기만 하지만 큐비트의 숫자는 서로 지울 수 있어요. 이걸 간섭이라고 해요.</p>
           ${firstTime ? '<p>새 게이트 Z가 열렸어요. 둘째 숫자의 부호만 뒤집는 게이트예요.</p>' : ''}`;
@@ -616,13 +910,60 @@ footer p { margin: 0; }
     return '';
   }
 
-  /* actions */
+  function judge2(p1, zero, one) {
+    const f = S.f, ph = T.ph % 360, got = `0이 ${zero}번, 1이 ${one}번 나왔어요.`;
+    if (S.stage === 2) {
+      if (ph === 0) {
+        return `<p>${got} 두 숫자의 길이가 같아서 반반이에요.</p><p>${f.c0 ? '이제 둘째 숫자를 90°로 돌리고 다시 뽑아 보세요.' : '위에서 예측을 고른 뒤 둘째 숫자를 돌려 보세요.'}</p>`;
+      }
+      let verdict = '';
+      if (!f.cSeen) {
+        f.cSeen = true;
+        verdict = f.c0 === 'same' ? '예측이 맞았어요. ' : `예측은 "${predText(LV.stages[2], f.c0)}"였죠. 실제로는 그대로예요. `;
+      }
+      if (ph === 90) {
+        f.c1 = true;
+        return `<p>${verdict}${got} 여전히 반반이에요.</p>
+          <p>둘째 숫자는 <code>0.707j</code>가 됐지만 길이는 0.707 그대로예요. 확률은 길이를 제곱한 값이라서, 방향은 뽑기에 보이지 않아요.</p>`;
+      }
+      if (ph === 180) {
+        f.c2 = true;
+        return `<p>${verdict}${got} 이번에도 반반이에요.</p>
+          <p>지금 상태는 <code>[0.707, -0.707]</code>이에요. Daily 1에서 Z 게이트가 만든 상태와 같아요. 둘째 숫자를 180° 돌리는 P 게이트가 바로 Z예요.</p>`;
+      }
+      return `<p>${verdict}${got} 각도가 몇 도든 반반이에요.</p><p>목표의 각도인 90°와 180°에 맞추고 뽑아 보세요.</p>`;
+    }
+    if (S.stage === 3) {
+      if (p1 < 1e-9) {
+        f.d1 = true;
+        return `<p>0만 1,000번 나왔어요.</p>
+          <p>각도가 0°면 두 숫자가 같은 방향이에요. 더한 쪽은 그대로 합쳐지고, 뺀 쪽은 갔다가 되돌아와서 지워져요. Daily 1의 H, H와 같은 회로예요.</p>`;
+      }
+      if (p1 > 1 - 1e-9) {
+        f.d2 = true;
+        return `<p>1만 1,000번 나왔어요.</p>
+          <p>180°면 둘째 숫자가 정반대를 봐요. 이번엔 더한 쪽이 지워지고 뺀 쪽이 합쳐져요. Daily 1의 H, Z, H와 같은 회로예요.</p>`;
+      }
+      if (Math.abs(1 - p1 - 0.75) <= 0.015) {
+        f.d3 = true;
+        return `<p>0이 ${zero}번 나왔어요. 750번 근처죠. 더한 쪽 화살표의 길이가 0.866이고, 제곱하면 0.75예요.</p>
+          <p>측정에는 보이지 않던 각도 하나가 확률을 0%에서 100%까지 바꿔요. 양자 알고리즘은 이렇게 정답이 나올 확률을 키워요.</p>`;
+      }
+      const todo = !f.d1 ? '0만 나오게 하려면 두 숫자가 같은 방향이어야 해요.'
+        : !f.d2 ? '1만 나오게 하려면 둘째 숫자가 정반대 방향이어야 해요.'
+        : !f.d3 ? '0이 나올 확률이 75%가 되는 각도를 찾아보세요. 90°보다 작은 쪽에 있어요.' : '';
+      return `<p>${got}</p>${todo ? `<p>${todo}</p>` : ''}`;
+    }
+    return '';
+  }
+
+  /* ---------- actions ---------- */
   function changed() { T.tape = []; T.counts = null; T.note = ''; }
   function drawOne() {
-    const p1 = stateNow()[1] ** 2;
+    const p1 = p1Now();
     T.tape.push(Math.random() < p1 ? 1 : 0);
     if (T.tape.length > 14) T.tape.shift();
-    if (S.stage === 0) {
+    if (day === 1 && S.stage === 0) {
       S.f.s0 += 1;
       T.note = S.f.s0 >= 5
         ? `<p>${S.f.s0}번 모두 0이 나왔어요. <code>[1, 0]</code>은 0만 나오는 설정이라 몇 번을 뽑아도 같아요.</p><p>이 설정을 바꾸는 방법을 다음 단계에서 배워요.</p>`
@@ -631,11 +972,11 @@ footer p { margin: 0; }
     render();
   }
   function drawMany() {
-    const p1 = stateNow()[1] ** 2;
+    const p1 = p1Now();
     let one = 0;
     for (let i = 0; i < 1000; i++) if (Math.random() < p1) one++;
     T.counts = { zero: 1000 - one, one };
-    T.note = judge(p1, 1000 - one, one);
+    T.note = (day === 1 ? judge : judge2)(p1, 1000 - one, one);
     render();
   }
   function addGate(g) {
@@ -648,28 +989,78 @@ footer p { margin: 0; }
   }
   function go(i) {
     if (i < 0 || i > unlocked()) return;
+    stopSpin();
     S.stage = i;
     const keepWrong = T.wrong;
     T = freshT();
     T.wrong = keepWrong;
+    if (day === 2 && i === 3) T.ph = 90;
     render(true);
     const h = $('stageName');
     if (h && h.scrollIntoView) { h.focus({ preventScroll: true }); $('mission').scrollIntoView({ block: 'start' }); }
   }
 
-  /* rendering */
+  function setXY(x, y, how) {
+    T.x = x; T.y = y;
+    const f = S.f;
+    let note = '';
+    if (how === 'conj') {
+      if (y === 0) {
+        note = '<p>세로가 0이라 뒤집어도 그대로예요. 세로가 있는 수에서 다시 눌러 보세요.</p>';
+      } else {
+        f.a2 = true;
+        note = `<p><code>${cWide([x, -y])}</code>의 켤레는 <code>${cWide([x, y])}</code>예요. 세로의 부호만 뒤집혀서, 화살표가 가로축을 거울 삼아 뒤집혔어요. 길이는 그대로예요.</p>
+          <p>어떤 수에 자기 켤레를 곱하면 크기의 제곱이 나와요 (지금은 ${x * x + y * y}).</p>`;
+      }
+    }
+    if (x === 3 && y === 4) {
+      f.a1 = true;
+      if (!note) note = `<p><code>3 + 4j</code>예요. 오른쪽으로 3칸, 위로 4칸이죠.</p>
+        <p>화살표의 길이는 √(3×3 + 4×4) = 5, 각도는 53.13°예요. 길이를 크기, 각도를 위상이라고 불러요.</p>`;
+    }
+    if (y === 0 && x < 0) {
+      f.a3 = true;
+      if (!note) note = `<p>화살표가 왼쪽을 봐요. 세로가 0이고 가로가 음수면 위상이 180°예요.</p>
+        <p>Daily 1에서 본 음수의 <code>-</code> 부호는 방향이 180°라는 뜻이었어요.</p>`;
+    }
+    T.note = note;
+    render(true);
+  }
+  function setRot(deg, how) {
+    T.rot = deg;
+    const f = S.f, r = deg % 360;
+    let note = '';
+    if (how === 'mul') f.b1 = true;
+    if (r === 180) f.b2 = true;
+    if (r === 60) f.b3 = true;
+    if (r === 180) {
+      note = `<p>처음과 정반대 방향이에요. 끝점은 <code>-3 - 4j</code>, 처음 수에 <code>-1</code>을 곱한 값이에요.</p>
+        <p><code>1j</code>를 두 번 곱하면 <code>-1</code>을 곱한 것과 같아요. Daily 1에서 Z 게이트가 하던 부호 뒤집기가 바로 이 180° 회전이에요.</p>`;
+    } else if (how === 'mul') {
+      note = `<p><code>1j</code>는 길이 1, 각도 90°인 수예요. 곱했더니 길이는 5 × 1 = 5 그대로고, 각도만 90° 늘었어요.</p>` +
+        (r === 90 ? '<p>끝점은 <code>-4 + 3j</code>가 됐어요. 왼쪽으로 4칸, 위로 3칸이에요.</p>' : '');
+    } else if (r === 60) {
+      note = `<p>길이 1, 각도 60°인 수를 곱한 거예요. 수식으로는 e^(i·60°), 파이썬으로는 <code>cmath.exp(1j * math.radians(60))</code>이라고 써요.</p>
+        <p>길이가 1인 수는 곱해도 길이를 바꾸지 않고 돌리기만 해요. 각도는 90° 단위가 아니어도 돼요.</p>`;
+    }
+    T.note = note;
+    render(true);
+  }
+  function setPh(deg) { T.ph = deg; changed(); render(true); }
+
+  /* ---------- rendering ---------- */
   function renderQuiz() {
-    const box = $('quiz');
-    if (!box.dataset.built) {
-      box.innerHTML = QUIZ.map((q, i) => `
+    const box = $('quiz'), Q = LV.quiz;
+    if (box.dataset.built !== String(day)) {
+      box.innerHTML = Q.map((q, i) => `
         <fieldset class="q" id="q${i}">
           <legend>${i + 1}. ${q.q}</legend>
           <div class="opts">${q.opts.map((o, j) => `<button type="button" class="opt" id="q${i}o${j}" data-q="${i}" data-o="${j}">${o}</button>`).join('')}</div>
           <p class="why" id="q${i}why" aria-live="polite"></p>
         </fieldset>`).join('');
-      box.dataset.built = '1';
+      box.dataset.built = String(day);
     }
-    QUIZ.forEach((q, i) => {
+    Q.forEach((q, i) => {
       const right = S.f.right[i];
       q.opts.forEach((_, j) => {
         const b = $(`q${i}o${j}`);
@@ -682,52 +1073,240 @@ footer p { margin: 0; }
     });
   }
 
+  function renderClear() {
+    const n = starsFor(day), more = day < BUILT;
+    $('clearTitle').textContent = `DAILY ${day} 클리어`;
+    $('stars').textContent = '★'.repeat(n) + '☆'.repeat(3 - n);
+    $('starsText').textContent = `별 3개 중 ${n}개`;
+    $('learned').innerHTML = LV.learned.map(t => `<li>${t}</li>`).join('');
+    $('nextLv').textContent = LV.next;
+    $('nextDayBtn').hidden = !more;
+    $('nextDayBtn').textContent = `Daily ${day + 1} 시작하기`;
+    $('homeBtn').classList.toggle('primary', !more);
+    $('resetBtn').textContent = `Daily ${day} 처음부터 다시 하기`;
+  }
+
   function codeText() {
     const lines = ['from qiskit import QuantumCircuit', 'from qiskit_aer import AerSimulator', '', 'qc = QuantumCircuit(1, 1)'];
-    if (S.stage === 1 && T.deg > 0) lines.push(`qc.ry(${(2 * T.deg * Math.PI / 180).toFixed(4)}, 0)`);
+    if (S.stage === 1 && T.deg > 0) lines.push(`qc.ry(${(2 * T.deg * RAD).toFixed(4)}, 0)`);
     if (S.stage === 2 || S.stage === 3) T.circuit.forEach(g => lines.push(GATES[g].code));
     lines.push('qc.measure(0, 0)', '', 'counts = AerSimulator().run(qc, shots=1000).result().get_counts()', 'print(counts)');
     return lines.join('\n');
   }
+  /* how Python prints a complex number whose parts are whole numbers */
+  const pyNum = v => (Object.is(v, -0) ? '-0' : String(v));
+  const pyComplex = (re, im) => (re === 0 && !Object.is(re, -0)
+    ? `${pyNum(im)}j`
+    : `(${pyNum(re)}${im < 0 || Object.is(im, -0) ? '-' : '+'}${Math.abs(im)}j)`);
+  function codeText2() {
+    const i = S.stage;
+    if (i === 0) {
+      const x = T.x, y = T.y, m = cabs([x, y]);
+      return ['import cmath, math', '',
+        `z = ${x} ${y < 0 ? '-' : '+'} ${Math.abs(y)}j`,
+        `print(z.real, z.imag)   # ${x.toFixed(1)} ${y.toFixed(1)}`,
+        `print(abs(z))           # ${Number.isInteger(m) ? m.toFixed(1) : '약 ' + m.toFixed(2)}`,
+        'deg = math.degrees(cmath.phase(z))',
+        `print(deg % 360)        # ${m < 1e-9 ? '0.0' : '약 ' + cargDeg([x, y]).toFixed(2)}`,
+        `print(z.conjugate())    # ${pyComplex(x, -y)}`].join('\n');
+    }
+    if (i === 1) {
+      const w = d2().z;
+      return ['import cmath, math', '',
+        'z = 3 + 4j',
+        `# 길이 1, 각도 ${T.rot}도인 수`,
+        `r = cmath.exp(1j * math.radians(${T.rot}))`,
+        'w = z * r',
+        'print(abs(r))   # 약 1.0',
+        `print(w)        # 약 (${num(w[0], 2)}${Math.round(w[1] * 100) / 100 < 0 ? '-' : '+'}${num(Math.abs(w[1]), 2)}j)`,
+        'print(abs(w))   # 약 5.0'].join('\n');
+    }
+    const lines = ['import math', 'from qiskit import QuantumCircuit', 'from qiskit_aer import AerSimulator', '',
+      'qc = QuantumCircuit(1, 1)', 'qc.h(0)', `# 둘째 숫자를 ${T.ph}도 돌린다`, `qc.p(math.radians(${T.ph}), 0)`];
+    if (i === 3) lines.push('qc.h(0)');
+    lines.push('qc.measure(0, 0)', '', 'counts = AerSimulator().run(qc, shots=1000).result().get_counts()', 'print(counts)');
+    return lines.join('\n');
+  }
+  const codeNow = () => (day === 1 ? codeText() : codeText2());
 
   function renderHome() {
-    const cleared = STAGES.filter((_, k) => goalsDone(k)).length;
-    const started = cleared > 0 || S.f.s0 > 0;
-    const stars = '★'.repeat(starCount());
-    $('startBtn').textContent = S.f.quiz ? 'Daily 1 다시 보기' : (started ? '이어서 하기' : '시작하기');
-    $('startSub').textContent = S.f.quiz ? `Daily 1 클리어 ${stars}` : (started ? `Daily 1 진행 중 ${cleared}/${STAGES.length}` : 'Daily 1 · 큐비트와 측정');
-    const box = $('weeks');
-    if (!box.dataset.built) {
-      let h = '';
-      WEEKS.forEach((w, wi) => {
-        h += `<section class="week"><h3>${w}</h3><div class="days">` + DAYS.slice(wi * 7, wi * 7 + 7).map((t, k) => {
-          const n = wi * 7 + k + 1;
-          return n === 1
-            ? `<button type="button" class="day open" data-day="1" aria-label="Daily 1: ${t}"><span class="dn">1</span><span class="ds" id="day1s"></span></button>`
-            : `<button type="button" class="day locked" data-day="${n}" aria-disabled="true" aria-label="Daily ${n}: ${t} (잠김)"><span class="dn">${n}</span>${LOCK}</button>`;
-        }).join('') + '</div></section>';
-      });
-      box.innerHTML = h;
-      box.dataset.built = '1';
+    const n = focusDay(), lv = LEVELS[n], f = P[n].f;
+    const got = lv.stages.filter((_, k) => goalsDoneFor(n, k)).length;
+    const started = got > 0 || lv.touched(f);
+    $('startBtn').textContent = f.quiz ? `Daily ${n} 다시 보기` : (started ? '이어서 하기' : (n === 1 ? '시작하기' : `Daily ${n} 시작하기`));
+    $('startSub').textContent = f.quiz ? `Daily ${n} 클리어 ${'★'.repeat(starsFor(n))}`
+      : (started ? `Daily ${n} 진행 중 ${got}/${lv.stages.length}` : `Daily ${n} · ${lv.title}`);
+    let h = '';
+    WEEKS.forEach((w, wi) => {
+      h += `<section class="week"><h3>${w}</h3><div class="days">` + DAYS.slice(wi * 7, wi * 7 + 7).map((t, k) => {
+        const d = wi * 7 + k + 1;
+        if (dayOpen(d)) {
+          const L = LEVELS[d], df = P[d].f, g = L.stages.filter((_, s) => goalsDoneFor(d, s)).length;
+          const status = df.quiz ? '★'.repeat(starsFor(d)) : (g > 0 || L.touched(df) ? `${g}/${L.stages.length}` : '열림');
+          return `<button type="button" class="day open" data-day="${d}" aria-label="Daily ${d}: ${t}"><span class="dn">${d}</span><span class="ds" id="day${d}s">${status}</span></button>`;
+        }
+        const ready = d <= BUILT;
+        return `<button type="button" class="day locked${ready ? ' ready' : ''}" data-day="${d}" aria-disabled="true" aria-label="Daily ${d}: ${t} (${ready ? `Daily ${d - 1} 클리어 후에 열림` : '준비 중'})"><span class="dn">${d}</span>${LOCK}</button>`;
+      }).join('') + '</div></section>';
+    });
+    $('weeks').innerHTML = h;
+  }
+
+  function renderResult(i, draws) {
+    const tape = $('tape');
+    if (draws) {
+      tape.innerHTML = T.tape.length
+        ? T.tape.map((v, k) => `<span class="chip ${v ? 'o' : 'z'} ${k === T.tape.length - 1 ? 'last' : ''}">${v}</span>`).join('') +
+          `<span class="sr">방금 뽑은 결과는 ${T.tape[T.tape.length - 1]}</span>`
+        : '<span class="empty">아직 뽑지 않았어요. 버튼을 눌러 큐비트를 측정해 보세요.</span>';
+      tape.hidden = !T.tape.length && !!T.counts;
+    } else {
+      tape.innerHTML = '';
+      tape.hidden = true;
     }
-    $('day1s').textContent = S.f.quiz ? stars : (started ? `${cleared}/${STAGES.length}` : '열림');
+    $('counts').hidden = !T.counts;
+    if (T.counts) {
+      $('fillC0').style.width = (T.counts.zero / 10) + '%';
+      $('fillC1').style.width = (T.counts.one / 10) + '%';
+      $('valC0').textContent = String(T.counts.zero);
+      $('valC1').textContent = String(T.counts.one);
+      const parts = [];
+      if (T.counts.zero) parts.push(`'0': ${T.counts.zero}`);
+      if (T.counts.one) parts.push(`'1': ${T.counts.one}`);
+      $('dict').textContent = `Qiskit 출력 형식: {${parts.join(', ')}}`;
+    }
+    const done = stageDone(i);
+    $('note').hidden = !T.note;
+    $('note').innerHTML = T.note;
+    $('nextBtn').hidden = !done;
+    $('nextBtn').textContent = i === LV.stages.length - 2 ? '보스 문제 풀기' : '다음 단계로';
+    $('result').hidden = !draws && !T.note && !done;
+  }
+
+  function setProbs(p0, p1) {
+    $('fillP0').style.width = (p0 * 100).toFixed(1) + '%';
+    $('fillP1').style.width = (p1 * 100).toFixed(1) + '%';
+    $('valP0').textContent = (p0 * 100).toFixed(1) + '%';
+    $('valP1').textContent = (p1 * 100).toFixed(1) + '%';
+  }
+
+  function boardD1(i, snap) {
+    hide($('dial'), false); hide($('viz'), true);
+    $('kv').hidden = true; $('rowP0').hidden = false; $('rowP1').hidden = false; $('sumLine').hidden = false;
+    $('stateKey').textContent = '상태 [a, b]';
+    $('stateText').classList.remove('long');
+    $('ctlXY').hidden = true; $('ctlRot').hidden = true; $('ctlPh').hidden = true; $('ctlDraws').hidden = false;
+    $('codeTitle').textContent = '같은 실험을 Qiskit으로';
+    $('codeLead').textContent = '지금 화면의 설정을 파이썬 코드로 쓰면 이렇게 돼요.';
+
+    const s = stateNow(), p0 = s[0] ** 2, p1 = s[1] ** 2;
+    $('stateText').textContent = stateText(s);
+    $('dialDesc').textContent = `화살표가 상태 ${shortText(s)}을 가리킨다.`;
+    setProbs(p0, p1);
+    $('sumLine').textContent = i === 0 ? '' : `a² + b² = ${p0.toFixed(3)} + ${p1.toFixed(3)} = 1`;
+    setAngle(Math.atan2(s[1], s[0]), snap);
+
+    $('ctlSlider').hidden = i !== 1;
+    $('angle').value = String(T.deg);
+    $('angleText').textContent = `${T.deg}°`;
+
+    const gateStage = i === 2 || i === 3;
+    $('ctlGates').hidden = !gateStage;
+    if (gateStage) {
+      $('gateZ').hidden = i !== 3;
+      $('gateZ').disabled = !S.f.s3hh;
+      $('gateZ').setAttribute('aria-label', S.f.s3hh ? 'Z 게이트 걸기' : 'Z 게이트 (H 두 번 실험 뒤에 열려요)');
+      $('undoBtn').disabled = T.circuit.length === 0;
+      $('clearBtn').disabled = T.circuit.length === 0;
+      $('rule').textContent = T.rule || (i === 3 && !S.f.s3predict ? '먼저 위에서 예측을 골라 주세요.' : '게이트를 눌러 회로에 추가하세요.');
+      const trace = runCircuit(T.circuit);
+      $('strip').innerHTML = '<span class="node start">[1, 0]</span>' +
+        T.circuit.map(g => `<span class="wire"></span><span class="node">${g}</span>`).join('') +
+        '<span class="wire"></span><span class="node end">측정</span>';
+      $('trace').textContent = trace.map((s2, k) => (k === 0 ? '시작 ' : `${T.circuit[k - 1]} `) + shortText(s2)).join('  →  ');
+    }
+    $('drawMany').hidden = i === 0;
+    $('draws').classList.toggle('single', i === 0);
+    renderResult(i, true);
+    $('code').textContent = codeText();
+  }
+
+  function boardD2(i) {
+    const d = d2(), plane = i <= 1;
+    hide($('dial'), true); hide($('viz'), false);
+    $('kv').hidden = !plane;
+    $('rowP0').hidden = plane; $('rowP1').hidden = plane; $('sumLine').hidden = plane;
+    const code = $('stateText');
+    code.classList.toggle('long', !plane);
+    if (plane) {
+      const m = cabs(d.z);
+      $('stateKey').textContent = i === 0 ? '복소수' : `3 + 4j를 ${T.rot}° 돌린 수`;
+      code.textContent = cWide(d.z);
+      $('kvRe').textContent = num(d.z[0], 2);
+      $('kvIm').textContent = num(d.z[1], 2);
+      $('kvAbs').textContent = num(m, 2);
+      $('kvArg').textContent = m < 1e-9 ? '없음' : num(cargDeg(d.z), 2) + '°';
+    } else {
+      $('stateKey').textContent = i === 2 ? '상태 [a, b]' : 'H를 한 번 더 건 뒤 [a, b]';
+      code.textContent = arr(d.s);
+      setProbs(d.p0, d.p1);
+      $('sumLine').textContent = `a의 크기² + b의 크기² = ${d.p0.toFixed(3)} + ${d.p1.toFixed(3)} = 1`;
+    }
+    if (!raf2) paintViz();
+
+    $('ctlSlider').hidden = true; $('ctlGates').hidden = true;
+    $('ctlXY').hidden = i !== 0; $('ctlRot').hidden = i !== 1; $('ctlPh').hidden = plane; $('ctlDraws').hidden = plane;
+    if (i === 0) {
+      $('reIn').value = String(T.x); $('imIn').value = String(T.y);
+      $('reText').textContent = String(T.x); $('imText').textContent = String(T.y);
+      $('reDown').disabled = T.x <= -5; $('reUp').disabled = T.x >= 5;
+      $('imDown').disabled = T.y <= -5; $('imUp').disabled = T.y >= 5;
+    } else if (i === 1) {
+      $('rotIn').value = String(T.rot);
+      $('rotText').textContent = `${T.rot}°`;
+      $('rotDown').disabled = T.rot <= 0; $('rotUp').disabled = T.rot >= 360;
+      $('rotReset').disabled = T.rot === 0;
+    } else {
+      const wait = i === 2 && !S.f.c0, two = i === 3;
+      $('phIn').disabled = wait;
+      $('phDown').disabled = wait || T.ph <= 0;
+      $('phUp').disabled = wait || T.ph >= 360;
+      $('phIn').value = String(T.ph);
+      $('phText').textContent = `${T.ph}°`;
+      $('phRule').textContent = wait ? '먼저 위에서 예측을 골라 주세요.'
+        : (two ? 'H: [a, b] → [(a + b)/√2, (a − b)/√2]. 그림은 a 방향으로 한 걸음, 이어서 b 방향으로 한 걸음 간 거예요. 빼기는 b의 반대 방향으로 가요. 출발점에서 멀어진 거리를 제곱하면 확률이에요.'
+          : 'P: [a, b] → [a, b를 각도만큼 돌린 것]. 둘째 숫자의 방향만 돌려요.');
+      $('strip2').innerHTML = '<span class="node start">[1, 0]</span><span class="wire"></span><span class="node">H</span><span class="wire"></span>' +
+        `<span class="node">P(${T.ph}°)</span>` + (two ? '<span class="wire"></span><span class="node">H</span>' : '') +
+        '<span class="wire"></span><span class="node end">측정</span>';
+      const parts = ['시작 [1, 0]', 'H [0.707, 0.707]', `P ${arr([d.a, d.b])}`];
+      if (two) parts.push(`H ${arr(d.s)}`);
+      $('trace2').textContent = parts.join('  →  ');
+      $('drawMany').hidden = false;
+      $('draws').classList.remove('single');
+    }
+    renderResult(i, !plane);
+    $('codeTitle').textContent = plane ? '같은 계산을 파이썬으로' : '같은 실험을 Qiskit으로';
+    $('codeLead').textContent = plane ? '지금 화면의 숫자를 파이썬으로 계산하면 이렇게 돼요.' : '지금 화면의 회로를 파이썬 코드로 쓰면 이렇게 돼요.';
+    $('code').textContent = codeText2();
   }
 
   function render(snap) {
     $('home').hidden = view !== 'home';
     $('play').hidden = view !== 'play';
     $('top').hidden = view !== 'play';
-    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* progress just is not kept */ }
+    try { for (const n in KEYS) localStorage.setItem(KEYS[n], JSON.stringify(P[n])); } catch (e) { /* progress just is not kept */ }
     if (view === 'home') { renderHome(); return; }
-    const i = S.stage, st = STAGES[i], quizStage = i === 4;
+    const i = S.stage, st = LV.stages[i], quizStage = i === LV.stages.length - 1;
     const unl = unlocked(), lv = live();
 
-    $('pips').innerHTML = STAGES.map((s, k) => {
+    $('badge').textContent = `DAILY ${day}`;
+    $('pips').innerHTML = LV.stages.map((s, k) => {
       const cls = ['pip', k === i ? 'now' : '', goalsDone(k) ? 'done' : ''].join(' ').trim();
       return `<button type="button" class="${cls}" data-go="${k}" ${k > unl ? 'disabled' : ''} ${k === i ? 'aria-current="step"' : ''} aria-label="${k + 1}단계 ${s.name}">${k + 1}</button>`;
     }).join('');
 
-    $('stageNo').textContent = `${i + 1}단계 / ${STAGES.length}단계`;
+    $('stageNo').textContent = `${i + 1}단계 / ${LV.stages.length}단계`;
     $('stageName').textContent = st.name;
     $('stageIntro').innerHTML = st.intro;
     $('goals').innerHTML = st.goals.map(g => {
@@ -735,108 +1314,75 @@ footer p { margin: 0; }
       return `<li class="${ok ? 'ok' : ''}"><span class="box" aria-hidden="true"></span><span>${g.text}<span class="sr"> ${ok ? '(완료)' : '(아직)'}</span></span></li>`;
     }).join('');
 
-    $('predict').hidden = i !== 3;
-    ['half', 'zero', 'one'].forEach(p => {
-      const b = $('pred' + p[0].toUpperCase() + p.slice(1));
-      b.setAttribute('aria-pressed', String(S.f.s3predict === p));
-      b.disabled = S.f.s3hh;
-    });
+    const pd = st.predict;
+    $('predict').hidden = !pd;
+    if (pd) {
+      $('predictLabel').textContent = pd.label;
+      const locked = pd.lock(S.f);
+      $('choices').innerHTML = pd.opts.map(([k, t]) =>
+        `<button type="button" class="choice" id="pred${k[0].toUpperCase() + k.slice(1)}" data-pred="${k}" aria-pressed="${S.f[pd.key] === k}"${locked ? ' disabled' : ''}>${t}</button>`).join('');
+    }
 
     $('machine').hidden = quizStage;
     $('controls').hidden = quizStage;
-    $('result').hidden = quizStage;
     $('codeBox').hidden = quizStage;
     $('quiz').hidden = !quizStage || S.f.quiz;
     $('clear').hidden = !(quizStage && S.f.quiz);
-
-    if (!quizStage) {
-      const s = stateNow(), p0 = s[0] ** 2, p1 = s[1] ** 2;
-      $('stateText').textContent = stateText(s);
-      $('dialDesc').textContent = `화살표가 상태 ${shortText(s)}을 가리킨다.`;
-      $('fillP0').style.width = (p0 * 100).toFixed(1) + '%';
-      $('fillP1').style.width = (p1 * 100).toFixed(1) + '%';
-      $('valP0').textContent = (p0 * 100).toFixed(1) + '%';
-      $('valP1').textContent = (p1 * 100).toFixed(1) + '%';
-      $('sumLine').textContent = i === 0 ? '' : `a² + b² = ${p0.toFixed(3)} + ${p1.toFixed(3)} = 1`;
-      setAngle(Math.atan2(s[1], s[0]), snap);
-
-      $('ctlSlider').hidden = i !== 1;
-      $('angle').value = String(T.deg);
-      $('angleText').textContent = `${T.deg}°`;
-
-      const gateStage = i === 2 || i === 3;
-      $('ctlGates').hidden = !gateStage;
-      if (gateStage) {
-        $('gateZ').hidden = i !== 3;
-        $('gateZ').disabled = !S.f.s3hh;
-        $('gateZ').setAttribute('aria-label', S.f.s3hh ? 'Z 게이트 걸기' : 'Z 게이트 (H 두 번 실험 뒤에 열려요)');
-        $('undoBtn').disabled = T.circuit.length === 0;
-        $('clearBtn').disabled = T.circuit.length === 0;
-        $('rule').textContent = T.rule || (i === 3 && !S.f.s3predict ? '먼저 위에서 예측을 골라 주세요.' : '게이트를 눌러 회로에 추가하세요.');
-        const trace = runCircuit(T.circuit);
-        $('strip').innerHTML = '<span class="node start">[1, 0]</span>' +
-          T.circuit.map(g => `<span class="wire"></span><span class="node">${g}</span>`).join('') +
-          '<span class="wire"></span><span class="node end">측정</span>';
-        $('trace').textContent = trace.map((s2, k) => (k === 0 ? '시작 ' : `${T.circuit[k - 1]} `) + shortText(s2)).join('  →  ');
-      }
-      $('drawMany').hidden = i === 0;
-      $('draws').classList.toggle('single', i === 0);
-
-      $('tape').innerHTML = T.tape.length
-        ? T.tape.map((v, k) => `<span class="chip ${v ? 'o' : 'z'} ${k === T.tape.length - 1 ? 'last' : ''}">${v}</span>`).join('') +
-          `<span class="sr">방금 뽑은 결과는 ${T.tape[T.tape.length - 1]}</span>`
-        : '<span class="empty">아직 뽑지 않았어요. 버튼을 눌러 큐비트를 측정해 보세요.</span>';
-      $('tape').hidden = !T.tape.length && !!T.counts;
-      $('counts').hidden = !T.counts;
-      if (T.counts) {
-        $('fillC0').style.width = (T.counts.zero / 10) + '%';
-        $('fillC1').style.width = (T.counts.one / 10) + '%';
-        $('valC0').textContent = String(T.counts.zero);
-        $('valC1').textContent = String(T.counts.one);
-        const parts = [];
-        if (T.counts.zero) parts.push(`'0': ${T.counts.zero}`);
-        if (T.counts.one) parts.push(`'1': ${T.counts.one}`);
-        $('dict').textContent = `Qiskit 출력 형식: {${parts.join(', ')}}`;
-      }
-      $('note').hidden = !T.note;
-      $('note').innerHTML = T.note;
-      $('nextBtn').hidden = !stageDone(i);
-      $('nextBtn').textContent = i === 3 ? '보스 문제 풀기' : '다음 단계로';
-      $('code').textContent = codeText();
-    } else {
+    if (quizStage) {
+      $('result').hidden = true;
       renderQuiz();
-      if (S.f.quiz) {
-        const n = starCount();
-        $('stars').textContent = '★'.repeat(n) + '☆'.repeat(3 - n);
-        $('starsText').textContent = `별 3개 중 ${n}개`;
-      }
+      if (S.f.quiz) renderClear();
+      return;
     }
-
+    if (day === 1) boardD1(i, snap); else boardD2(i);
   }
 
-  /* views: the start screen, and Daily 1 at #daily-1 */
-  function setView(v) {
+  /* ---------- views: the start screen, and each day at #daily-N ---------- */
+  function route() {
+    const m = /^#daily-(\d+)$/.exec(location.hash || '');
+    const n = m ? Number(m[1]) : 0;
+    if (n && dayOpen(n)) return { view: 'play', day: n };
+    return { view: 'home', blocked: n > 1 && n <= BUILT ? n : 0 };
+  }
+  function enterDay(n, force) {
+    if (n === day && !force) return;
+    stopSpin();
+    day = n; S = P[n]; LV = LEVELS[n];
+    T = freshT();
+    if (day === 2 && S.stage === 3) T.ph = 90;
+  }
+  const blockedHint = n => `Daily ${n} · ${DAYS[n - 1]}. Daily ${n - 1} 클리어 후에 열려요.`;
+  function setView(v, n) {
     view = v;
-    const want = v === 'play' ? '#daily-1' : '';
+    if (v === 'play') enterDay(n || day);
+    const want = v === 'play' ? `#daily-${day}` : '';
     try { if (location.hash !== want && !(want === '' && !location.hash)) location.hash = want; } catch (e) { /* the in-page view still changes */ }
     render(true);
     window.scrollTo(0, 0);
     const h = $(v === 'play' ? 'stageName' : 'homeTitle');
     if (h) h.focus({ preventScroll: true });
   }
-  window.addEventListener('hashchange', () => { const v = viewFromHash(); if (v !== view) { view = v; render(true); } });
-  $('startBtn').addEventListener('click', () => setView('play'));
+  window.addEventListener('hashchange', () => {
+    const r = route();
+    if (r.blocked) $('dayHint').textContent = blockedHint(r.blocked);
+    if (r.view === view && (r.view === 'home' || r.day === day)) return;
+    view = r.view;
+    if (r.view === 'play') enterDay(r.day);
+    render(true);
+  });
+  $('startBtn').addEventListener('click', () => setView('play', focusDay()));
   $('homeLink').addEventListener('click', e => { e.preventDefault(); setView('home'); });
   $('homeBtn').addEventListener('click', () => setView('home'));
+  $('nextDayBtn').addEventListener('click', () => { if (dayOpen(day + 1)) setView('play', day + 1); });
   $('weeks').addEventListener('click', e => {
     const b = e.target.closest('[data-day]');
     if (!b) return;
     const n = Number(b.dataset.day);
-    if (n === 1) { setView('play'); return; }
-    $('dayHint').textContent = `Daily ${n} · ${DAYS[n - 1]}. 아직 잠겨 있어요.`;
+    if (dayOpen(n)) { setView('play', n); return; }
+    $('dayHint').textContent = n <= BUILT ? blockedHint(n) : `Daily ${n} · ${DAYS[n - 1]}. 아직 준비 중이에요.`;
   });
 
-  /* events */
+  /* ---------- events ---------- */
   $('pips').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b && !b.disabled) go(Number(b.dataset.go)); });
   $('drawOne').addEventListener('click', drawOne);
   $('drawMany').addEventListener('click', drawMany);
@@ -847,48 +1393,92 @@ footer p { margin: 0; }
   $('ctlGates').addEventListener('click', e => { const b = e.target.closest('[data-gate]'); if (b && !b.disabled) addGate(b.dataset.gate); });
   $('undoBtn').addEventListener('click', () => { T.circuit.pop(); T.rule = ''; changed(); render(); });
   $('clearBtn').addEventListener('click', () => { T.circuit = []; T.rule = ''; changed(); render(); });
+
+  $('reIn').addEventListener('input', e => setXY(Number(e.target.value), T.y));
+  $('imIn').addEventListener('input', e => setXY(T.x, Number(e.target.value)));
+  $('reDown').addEventListener('click', () => setXY(clamp(T.x - 1, -5, 5), T.y));
+  $('reUp').addEventListener('click', () => setXY(clamp(T.x + 1, -5, 5), T.y));
+  $('imDown').addEventListener('click', () => setXY(T.x, clamp(T.y - 1, -5, 5)));
+  $('imUp').addEventListener('click', () => setXY(T.x, clamp(T.y + 1, -5, 5)));
+  $('conjBtn').addEventListener('click', () => setXY(T.x, T.y === 0 ? 0 : -T.y, 'conj'));
+  $('mulBtn').addEventListener('click', () => {
+    const from = T.rot % 360;
+    spin(from, from + 90);
+    setRot((from + 90) % 360, 'mul');
+  });
+  $('rotIn').addEventListener('input', e => { stopSpin(); setRot(Number(e.target.value)); });
+  $('rotDown').addEventListener('click', () => { stopSpin(); setRot(clamp(T.rot - 5, 0, 360)); });
+  $('rotUp').addEventListener('click', () => { stopSpin(); setRot(clamp(T.rot + 5, 0, 360)); });
+  $('rotReset').addEventListener('click', () => { stopSpin(); setRot(0); });
+  $('phIn').addEventListener('input', e => setPh(Number(e.target.value)));
+  $('phDown').addEventListener('click', () => setPh(clamp(T.ph - 5, 0, 360)));
+  $('phUp').addEventListener('click', () => setPh(clamp(T.ph + 5, 0, 360)));
+
   $('predict').addEventListener('click', e => {
     const b = e.target.closest('[data-pred]');
-    if (!b || b.disabled) return;
-    S.f.s3predict = b.dataset.pred;
+    const pd = LV.stages[S.stage].predict;
+    if (!b || b.disabled || !pd) return;
+    S.f[pd.key] = b.dataset.pred;
     T.rule = '';
+    const id = b.id;
     render();
+    const again = $(id);
+    if (again) again.focus({ preventScroll: true });
   });
   $('quiz').addEventListener('click', e => {
     const b = e.target.closest('[data-q]');
     if (!b || b.disabled) return;
     const q = Number(b.dataset.q), o = Number(b.dataset.o);
-    if (o === QUIZ[q].a) S.f.right[q] = true;
+    if (o === LV.quiz[q].a) S.f.right[q] = true;
     else { T.wrong[q].push(o); S.f.mistakes += 1; }
-    if (S.f.right.every(Boolean)) S.f.quiz = true;
+    if (S.f.right.every(Boolean)) { S.f.quiz = true; S.f.cleared = true; }
     render();
     if (S.f.quiz) $('clear').scrollIntoView({ block: 'start' });
   });
   $('resetBtn').addEventListener('click', () => {
-    S = { stage: 0, f: freshFlags() };
+    const keep = cleared(day);
+    P[day] = { stage: 0, f: LV.fresh() };
+    S = P[day];
+    S.f.cleared = keep;
     T = freshT();
     render(true);
     $('mission').scrollIntoView({ block: 'start' });
   });
   $('copyBtn').addEventListener('click', () => {
     const done = ok => { $('copyMsg').textContent = ok ? '복사했어요.' : '복사하지 못했어요. 코드를 길게 눌러 직접 복사해 주세요.'; };
-    try { navigator.clipboard.writeText(codeText()).then(() => done(true), () => done(false)); } catch (e) { done(false); }
+    try { navigator.clipboard.writeText(codeNow()).then(() => done(true), () => done(false)); } catch (e) { done(false); }
   });
 
-  /* boot: keep a viewer's place across a republish, else restore saved progress */
+  /* ---------- boot: keep a viewer's place across a republish, else restore saved progress ---------- */
+  function loadDay(n, saved) {
+    if (!saved || !saved.f) return;
+    const lv = LEVELS[n], f = Object.assign(lv.fresh(), saved.f);
+    if (!Array.isArray(f.right) || f.right.length !== lv.quiz.length) f.right = lv.fresh().right;
+    if (f.quiz) f.cleared = true;
+    P[n] = { stage: 0, f };
+    P[n].stage = clamp(Number(saved.stage) || 0, 0, unlockedFor(n));
+  }
   function start(data) {
-    let saved = data && data.S ? data.S : null;
-    if (!saved) { try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { saved = null; } }
-    if (saved && saved.f) {
-      S = { stage: 0, f: Object.assign(freshFlags(), saved.f) };
-      if (!Array.isArray(S.f.right) || S.f.right.length !== QUIZ.length) S.f.right = freshFlags().right;
-      S.stage = Math.min(Math.max(0, Number(saved.stage) || 0), unlocked());
+    data = data || {};
+    for (const k in KEYS) {
+      const n = Number(k);
+      let saved = data.P && data.P[n] ? data.P[n] : (n === 1 && data.S ? data.S : null);
+      if (!saved) { try { saved = JSON.parse(localStorage.getItem(KEYS[n]) || 'null'); } catch (e) { saved = null; } }
+      loadDay(n, saved);
     }
-    if (data && data.T) { T.deg = Number(data.T.deg) || 0; T.circuit = (data.T.circuit || []).filter(g => GATES[g]); }
+    const r = route(), keptDay = Number(data.day) || 1;
+    view = r.view;
+    enterDay(r.view === 'play' ? r.day : (dayOpen(keptDay) ? keptDay : 1), true);
+    if (data.T && keptDay === day) {
+      T.deg = Number(data.T.deg) || 0;
+      T.circuit = (data.T.circuit || []).filter(g => GATES[g]);
+      ['x', 'y', 'rot', 'ph'].forEach(k => { if (typeof data.T[k] === 'number') T[k] = data.T[k]; });
+    }
+    if (r.blocked) $('dayHint').textContent = blockedHint(r.blocked);
     render(true);
   }
   const hot = window.claude && window.claude.hot;
-  if (hot && hot.snapshot) hot.snapshot(() => ({ S, T: { deg: T.deg, circuit: T.circuit } }));
+  if (hot && hot.snapshot) hot.snapshot(() => ({ P, day, T: { deg: T.deg, circuit: T.circuit, x: T.x, y: T.y, rot: T.rot, ph: T.ph } }));
   if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();
 </script>
