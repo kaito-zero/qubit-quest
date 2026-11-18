@@ -146,6 +146,8 @@ button { font: inherit; color: inherit; }
 #viz .fz { fill: var(--zero); }
 #viz .fo { fill: var(--one); }
 #viz .walk { stroke: var(--ink); stroke-width: 1.5; }
+#viz .pline { stroke: var(--ink); stroke-width: 3; stroke-linecap: round; }
+#viz .unit { fill: none; stroke: var(--ink); stroke-width: 1.5; }
 #viz .fw { fill: var(--ink); }
 
 .readout { display: grid; gap: 8px; }
@@ -153,6 +155,7 @@ button { font: inherit; color: inherit; }
 .state .k, .row .k, .kv .k { font-size: 14px; color: var(--muted); }
 .state code { font-size: clamp(19px, 5.6vw, 24px); font-weight: 500; font-variant-numeric: tabular-nums; }
 .state code.long { font-size: clamp(13.5px, 4.1vw, 18px); }
+.ket { margin: 0; font-family: var(--font-mono); font-size: 15px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 16px; }
 .kv > div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .kv .v { font-family: var(--font-mono); font-size: 15px; font-variant-numeric: tabular-nums; }
@@ -188,6 +191,7 @@ button { font: inherit; color: inherit; }
 }
 .gate:disabled { opacity: 0.35; cursor: default; }
 .gates .spacer { flex: 1; }
+.gates .tools { display: inline-flex; gap: 8px; margin-left: auto; }
 .rule { margin: 0; font-size: 14.5px; min-height: 1.6em; }
 .strip { display: flex; align-items: center; gap: 0; overflow-x: auto; padding: 4px 0; }
 .strip .wire { flex: none; width: 14px; height: 2px; background: var(--ink); }
@@ -318,7 +322,7 @@ footer p { margin: 0; }
     </div>
     <div class="journey panel">
       <h2>Daily 1부터 Daily 30까지</h2>
-      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 3부터는 준비되는 대로 추가돼요.</p>
+      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 4부터는 준비되는 대로 추가돼요.</p>
       <div id="weeks"></div>
     </div>
   </section>
@@ -362,6 +366,7 @@ footer p { margin: 0; }
       </svg>
       <div class="readout" aria-live="polite">
         <div class="state"><span class="k" id="stateKey">상태 [a, b]</span><code id="stateText">[1.000, 0.000]</code></div>
+        <p class="ket" id="ketLine" hidden></p>
         <div class="kv" id="kv" hidden>
           <div><span class="k">가로 (실수부)</span><span class="v" id="kvRe"></span></div>
           <div><span class="k">세로 (허수부)</span><span class="v" id="kvIm"></span></div>
@@ -389,9 +394,10 @@ footer p { margin: 0; }
           <button type="button" class="gate" id="gateX" data-gate="X" aria-label="X 게이트 걸기">X</button>
           <button type="button" class="gate" id="gateH" data-gate="H" aria-label="H 게이트 걸기">H</button>
           <button type="button" class="gate" id="gateZ" data-gate="Z" aria-label="Z 게이트 걸기">Z</button>
-          <span class="spacer"></span>
-          <button type="button" class="btn small" id="undoBtn">되돌리기</button>
-          <button type="button" class="btn small" id="clearBtn">지우기</button>
+          <span class="tools">
+            <button type="button" class="btn small" id="undoBtn">되돌리기</button>
+            <button type="button" class="btn small" id="clearBtn">지우기</button>
+          </span>
         </div>
         <p class="rule" id="rule" aria-live="polite"></p>
         <div class="strip" id="strip" aria-label="지금 회로"></div>
@@ -439,6 +445,44 @@ footer p { margin: 0; }
         <div class="strip" id="strip2" aria-label="지금 회로"></div>
         <p class="trace" id="trace2"></p>
       </div>
+      <div class="ctl" id="ctlProb" hidden>
+        <label for="pbIn">1이 나올 확률 <span class="mono" id="pbText">50%</span></label>
+        <div class="slide">
+          <button type="button" class="btn small" id="pbDown" aria-label="1퍼센트 내리기">−</button>
+          <input type="range" id="pbIn" min="0" max="100" step="1" value="50">
+          <button type="button" class="btn small" id="pbUp" aria-label="1퍼센트 올리기">+</button>
+        </div>
+        <p class="rule">확률 벡터의 두 숫자는 0 이상이고, 더하면 항상 1이에요.</p>
+      </div>
+      <div class="ctl" id="ctlAmp" hidden>
+        <label for="amIn">첫째 진폭 a <span class="mono" id="amText">1</span></label>
+        <div class="slide plain">
+          <button type="button" class="btn small" id="amDown" aria-label="첫째 진폭 0.1 줄이기">−</button>
+          <input type="range" id="amIn" min="0" max="10" step="1" value="10">
+          <button type="button" class="btn small" id="amUp" aria-label="첫째 진폭 0.1 늘리기">+</button>
+        </div>
+        <div class="gates">
+          <button type="button" class="btn small" id="sgnBtn">둘째 진폭의 부호 뒤집기</button>
+        </div>
+        <p class="rule">a² + b² = 1이어야 해서, a를 정하면 b의 크기는 √(1 − a²)로 정해져요.</p>
+      </div>
+      <div class="ctl" id="ctlNorm" hidden>
+        <label for="nxIn">첫째 숫자 <span class="mono" id="nxText">2</span></label>
+        <div class="slide plain">
+          <button type="button" class="btn small" id="nxDown" aria-label="첫째 숫자 1 줄이기">−</button>
+          <input type="range" id="nxIn" min="-4" max="4" step="1" value="2">
+          <button type="button" class="btn small" id="nxUp" aria-label="첫째 숫자 1 늘리기">+</button>
+        </div>
+        <label for="nyIn">둘째 숫자 <span class="mono" id="nyText">1</span></label>
+        <div class="slide plain">
+          <button type="button" class="btn small" id="nyDown" aria-label="둘째 숫자 1 줄이기">−</button>
+          <input type="range" id="nyIn" min="-4" max="4" step="1" value="1">
+          <button type="button" class="btn small" id="nyUp" aria-label="둘째 숫자 1 늘리기">+</button>
+        </div>
+        <div class="gates">
+          <button type="button" class="btn primary" id="normBtn">정규화하기</button>
+        </div>
+      </div>
       <div class="ctl" id="ctlDraws">
         <div class="draws" id="draws">
           <button type="button" class="btn" id="drawOne">1번 뽑기</button>
@@ -485,7 +529,7 @@ footer p { margin: 0; }
 
   </main>
 
-  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 2까지 만들어져 있어요.</p></footer>
+  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 3까지 만들어져 있어요.</p></footer>
 </div>
 
 <script>
@@ -495,8 +539,8 @@ footer p { margin: 0; }
   const hide = (el, off) => { if (off) el.setAttribute('hidden', ''); else el.removeAttribute('hidden'); };
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const SQ = Math.SQRT1_2, RAD = Math.PI / 180;
-  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1' };
-  const BUILT = 2;
+  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1', 3: 'qubit-quest-d3-v1' };
+  const BUILT = 3;
   const CX = 150, CY = 128, R = 88;
 
   const tidy = v => {
@@ -615,6 +659,53 @@ footer p { margin: 0; }
     c0: '', cSeen: false, c1: false, c2: false, d1: false, d2: false, d3: false,
     quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
 
+  /* ---------- Daily 3: 상태 벡터와 디랙 표기법 ---------- */
+  const STAGES3 = [
+    { name: '확률 벡터',
+      intro: '동전 같은 보통의 뽑기는 숫자 두 개로 다 적을 수 있어요. <code>[0이 나올 확률, 1이 나올 확률]</code>이에요. 이걸 확률 벡터라고 해요. 두 숫자는 0 이상이고 합이 항상 1이라서, 점은 늘 직선 위에 있어요.',
+      goals: [
+        { text: '확률 벡터를 <code>[0.36, 0.64]</code>에 맞추기', done: (f, live) => f.e1 || !!live.p64 },
+        { text: '그 상태에서 1,000번 뽑기', done: f => f.e1 }] },
+    { name: '진폭과 켓',
+      intro: '큐비트는 확률 대신 진폭을 적어요. 상태 벡터 <code>[a, b]</code>의 a, b가 진폭이고, 제곱해야 확률이 돼요. <code>[1, 0]</code>에는 <code>|0&gt;</code>, <code>[0, 1]</code>에는 <code>|1&gt;</code>이라는 이름표가 있어요. 이 표기를 디랙 표기법, <code>| &gt;</code> 모양을 켓이라고 불러요.',
+      goals: [
+        { text: '<code>|1&gt;</code> 만들기', done: f => f.g1 },
+        { text: '<code>0.6|0&gt; + 0.8|1&gt;</code> 만들기', done: f => f.g2 },
+        { text: '<code>0.6|0&gt; - 0.8|1&gt;</code> 만들기', done: f => f.g3 }] },
+    { name: '정규화',
+      intro: '아무 숫자 두 개나 상태가 되는 건 아니에요. 제곱의 합이 1이어야 해요. 그렇지 않은 벡터는 자기 길이로 나누면 상태가 돼요. 방향은 그대로 두고 길이만 1로 맞추는 이 일을 정규화라고 해요. 그림의 원이 길이 1이에요.',
+      goals: [
+        { text: '<code>[3, 4]</code>를 정규화하기', done: f => f.n1 },
+        { text: '<code>[1, 1]</code>을 정규화하기', done: f => f.n2 },
+        { text: '<code>[1, -1]</code>을 정규화하기', done: f => f.n3 }] },
+    { name: '이름 있는 상태',
+      intro: '자주 쓰는 상태에는 이름이 있어요. <code>|+&gt;</code>는 <code>[0.707, 0.707]</code>, <code>|-&gt;</code>는 <code>[0.707, -0.707]</code>이에요. 게이트로 직접 만들어 보세요. 둘 다 뽑으면 반반인데, 정말 다른 상태일까요?',
+      goals: [
+        { text: '<code>|+&gt;</code>를 만들어 1,000번 뽑기', done: f => f.k1 },
+        { text: '<code>|-&gt;</code>를 만들어 1,000번 뽑기', done: f => f.k2 },
+        { text: '<code>|-&gt;</code>에 H를 더 걸고 1,000번 뽑기', done: f => f.k3 }] },
+    { name: 'Daily 3 보스',
+      intro: '배운 내용을 확인하는 문제 다섯 개예요. 모두 맞히면 Daily 3 클리어예요.',
+      goals: [{ text: '문제 5개 모두 맞히기', done: f => f.quiz }] }
+  ];
+
+  const QUIZ3 = [
+    { q: '<code>|1&gt;</code>을 벡터로 쓰면?', opts: ['[1, 0]', '[0, 1]', '[1, 1]'], a: 1,
+      why: '|1>은 [0, 1]에 붙인 이름표예요. 측정하면 항상 1이 나와요.' },
+    { q: '<code>0.6|0&gt; + 0.8|1&gt;</code>을 측정하면 1이 나올 확률은?', opts: ['36%', '60%', '64%', '80%'], a: 2,
+      why: '|1> 앞의 진폭 0.8을 제곱해요. 0.8 × 0.8 = 0.64.' },
+    { q: '다음 중 큐비트의 상태 벡터가 될 수 없는 것은?', opts: ['[0.6, 0.8]', '[0.707, -0.707]', '[0.5, 0.5]', '[0, 1]'], a: 2,
+      why: '제곱의 합이 0.25 + 0.25 = 0.5라서 1이 아니에요. [0.5, 0.5]는 확률 벡터로는 맞지만 상태 벡터는 아니에요.' },
+    { q: '<code>[3, 4]</code>를 정규화하면?', opts: ['[0.3, 0.4]', '[0.6, 0.8]', '[0.75, 1]'], a: 1,
+      why: '길이 5로 나눠요. 3 ÷ 5 = 0.6, 4 ÷ 5 = 0.8.' },
+    { q: '<code>|+&gt;</code>와 <code>|-&gt;</code>에 대한 설명으로 맞는 것은?', opts: ['측정 확률이 서로 다르다', '측정 확률은 같지만, H를 걸면 결과가 달라진다', '이름만 다른 같은 상태다'], a: 1,
+      why: '둘 다 뽑으면 반반이에요. H를 걸면 |+>는 0만, |->는 1만 나와요.' }
+  ];
+
+  const fresh3 = () => ({ e1: false, g1: false, g2: false, g3: false, n1: false, n2: false, n3: false,
+    k1: false, k2: false, k3: false,
+    quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
+
   const LEVELS = {
     1: { title: '큐비트와 측정', stages: STAGES1, quiz: QUIZ1, fresh: fresh1, touched: f => f.s0 > 0,
       learned: [
@@ -631,7 +722,15 @@ footer p { margin: 0; }
         '켤레는 세로만 뒤집은 수이고, 자기 켤레와 곱하면 크기의 제곱이 된다.',
         '큐비트의 확률은 숫자의 크기를 제곱한 값이다.',
         '위상은 측정에 보이지 않지만, 다음 게이트가 두 숫자를 더하고 뺄 때 결과를 바꾼다. 이것이 간섭이다.'],
-      next: 'Daily 3은 상태 벡터와 디랙 표기법이에요. 아직 준비 중이에요.' }
+      next: 'Daily 3이 열렸어요. 상태 벡터와 디랙 표기법이에요.' },
+    3: { title: '상태 벡터와 디랙 표기법', stages: STAGES3, quiz: QUIZ3, fresh: fresh3, touched: f => f.e1 || f.g1 || f.g2 || f.g3,
+      learned: [
+        '보통의 뽑기는 확률 벡터로 적는다. 두 숫자는 0 이상이고 합이 1이다.',
+        '큐비트는 상태 벡터 [a, b]로 적는다. a, b는 진폭이고, 제곱한 값이 확률이다.',
+        '|0>은 [1, 0], |1>은 [0, 1]의 이름표다. 모든 상태는 a|0> + b|1>로 쓸 수 있다.',
+        '상태 벡터는 제곱의 합이 1이어야 한다. 길이로 나눠 1로 맞추는 것이 정규화다.',
+        '|+>와 |->는 확률이 같지만 다른 상태다. 확률 벡터로는 이 차이를 적을 수 없다.'],
+      next: 'Daily 4는 측정과 보른 규칙이에요. 아직 준비 중이에요.' }
   };
 
   const WEEKS = ['1주 · 한 큐비트', '2주 · 여러 큐비트와 얽힘', '3주 · 회로와 프로토콜', '4주 · 첫 알고리즘', '5주 · 다음 알고리즘'];
@@ -649,10 +748,10 @@ footer p { margin: 0; }
   const LOCK = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" rx="1.2" fill="currentColor"></rect><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>';
 
   /* ---------- progress: one record per day, plus what is on screen right now ---------- */
-  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() } };
+  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() }, 3: { stage: 0, f: fresh3() } };
   let day = 1, S = P[1], LV = LEVELS[1];
   const freshT = () => ({ deg: 0, circuit: [], tape: [], counts: null, note: '', rule: '',
-    wrong: LV.quiz.map(() => []), x: 2, y: 1, rot: 0, ph: 0 });
+    wrong: LV.quiz.map(() => []), x: 2, y: 1, rot: 0, ph: 0, p: 50, a10: 10, sgn: 1, nx: 2, ny: 1, normed: false });
   let T = freshT();
   let view = 'home';
 
@@ -679,7 +778,10 @@ footer p { margin: 0; }
     if (S.stage === 2 || S.stage === 3) return runCircuit(T.circuit).pop();
     return [1, 0];
   }
-  const live = () => ({ near64: day === 1 && S.stage === 1 && Math.abs(stateNow()[1] ** 2 - 0.64) <= 0.015 });
+  const live = () => ({
+    near64: day === 1 && S.stage === 1 && Math.abs(stateNow()[1] ** 2 - 0.64) <= 0.015,
+    p64: day === 3 && S.stage === 0 && T.p === 64
+  });
   const stageDone = i => LV.stages[i].goals.every(g => g.done(S.f, i === S.stage ? live() : {}));
   const fmt = v => (Object.is(v, -0) ? 0 : v).toFixed(3);
   const stateText = s => `[${fmt(s[0])}, ${fmt(s[1])}]`;
@@ -712,7 +814,43 @@ footer p { margin: 0; }
     const f = [(1 + e[0]) / 2, e[1] / 2], g = [(1 - e[0]) / 2, -e[1] / 2];
     return { e, a, b, f, g, s: [f, g], p0: f[0] ** 2 + f[1] ** 2, p1: g[0] ** 2 + g[1] ** 2 };
   }
-  const p1Now = () => (day === 1 ? stateNow()[1] ** 2 : d2().p1);
+
+  /* ---------- Daily 3: probability vectors, amplitudes and kets (real amplitudes only) ---------- */
+  const NAMED = [[[1, 0], '|0>'], [[0, 1], '|1>'], [[SQ, SQ], '|+>'], [[SQ, -SQ], '|->']];
+  function nameOf(s) {
+    for (const [v, n] of NAMED) {
+      if (Math.abs(s[0] - v[0]) < 1e-9 && Math.abs(s[1] - v[1]) < 1e-9) return n;
+      if (Math.abs(s[0] + v[0]) < 1e-9 && Math.abs(s[1] + v[1]) < 1e-9) return '-' + n;
+    }
+    return '';
+  }
+  function ket(s) {
+    const a = Math.round(s[0] * 1000) / 1000, b = Math.round(s[1] * 1000) / 1000;
+    const term = (c, k, first) => {
+      const m = Math.abs(c), body = (m === 1 ? '' : String(m)) + k;
+      return first ? (c < 0 ? '-' : '') + body : (c < 0 ? ' - ' : ' + ') + body;
+    };
+    if (b === 0) return term(a, '|0>', true);
+    if (a === 0) return term(b, '|1>', true);
+    return term(a, '|0>', true) + term(b, '|1>', false);
+  }
+  const ketText = s => { const k = ket(s), n = nameOf(s); return n && n !== k ? `${k} = ${n}` : k; };
+  function d3() {
+    const i = S.stage;
+    if (i === 0) { const p1 = T.p / 100; return { p0: 1 - p1, p1 }; }
+    if (i === 1) {
+      const a = T.a10 / 10, s = [a, tidy(T.sgn * Math.sqrt(1 - a * a))];
+      return { s, p0: s[0] ** 2, p1: s[1] ** 2 };
+    }
+    if (i === 2) {
+      const sq = T.nx * T.nx + T.ny * T.ny, len = Math.sqrt(sq);
+      const s = T.normed && sq > 0 ? [T.nx / len, T.ny / len] : null;
+      return { raw: [T.nx, T.ny], sq, len, s, p0: s ? s[0] ** 2 : 0, p1: s ? s[1] ** 2 : 0 };
+    }
+    const s = runCircuit(T.circuit).pop();
+    return { s, p0: s[0] ** 2, p1: s[1] ** 2 };
+  }
+  const p1Now = () => (day === 1 ? stateNow()[1] ** 2 : day === 2 ? d2().p1 : d3().p1);
 
   /* ---------- dial (Daily 1) ---------- */
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -769,25 +907,65 @@ footer p { margin: 0; }
   }
 
   /* a grid where one square is 1: the arrow from the middle to [가로, 세로] */
-  function vizPlane(z, ghost) {
-    const cx = 150, cy = 138, u = 22, far = 5 * u;
+  function vizPlane(z, ghost, o) {
+    o = o || {};
+    const cx = 150, cy = 138, u = o.unit || 22, cells = o.unit ? 4 : 5, far = cells * u;
     let h = '';
-    for (let k = -5; k <= 5; k++) {
+    for (let k = -cells; k <= cells; k++) {
       if (!k) continue;
       h += ln('grid', cx + k * u, cy - far, cx + k * u, cy + far) + ln('grid', cx - far, cy - k * u, cx + far, cy - k * u);
     }
     h += ln('axis', cx - far - 10, cy, cx + far + 10, cy) + ln('axis', cx, cy - far - 10, cx, cy + far + 10);
-    h += txt('lab', cx + far + 14, cy + 4, '가로') + txt('lab', cx, 12, '세로', 'middle');
+    h += txt('lab', cx + far + 14, cy + 4, o.unit ? 'a' : '가로') + txt('lab', cx, 12, o.unit ? 'b' : '세로', 'middle');
+    if (o.unit) h += `<circle class="unit" cx="${cx}" cy="${cy}" r="${u}"></circle>`;
     if (ghost) {
       const gx = cx + ghost[0] * u, gy = cy - ghost[1] * u;
-      h += `<circle class="orbit" cx="${cx}" cy="${cy}" r="${(cabs(ghost) * u).toFixed(1)}"></circle>`;
+      if (!o.unit) h += `<circle class="orbit" cx="${cx}" cy="${cy}" r="${(cabs(ghost) * u).toFixed(1)}"></circle>`;
       h += ln('ghost', cx, cy, gx, gy) + dot('ghost-tip', gx, gy, 5);
     }
     const px = cx + z[0] * u, py = cy - z[1] * u;
-    h += ln('leg', cx, cy, px, cy) + ln('leg', px, cy, px, py);
-    if (cabs(z) > 1e-9) h += arc(cx, cy, 20, cargDeg(z));
-    h += ln('needle', cx, cy, px, py) + dot('hub', cx, cy, 4.5) + dot('tip', px, py, 7);
+    if (!o.unit) {
+      h += ln('leg', cx, cy, px, cy) + ln('leg', px, cy, px, py);
+      if (cabs(z) > 1e-9) h += arc(cx, cy, 20, cargDeg(z));
+    }
+    h += ln('needle', cx, cy, px, py) + dot('hub', cx, cy, 4.5) + dot('tip', px, py, o.unit && ghost ? 6 : 7);
     return h;
+  }
+
+  /* every probability vector is a point on the straight line from [1, 0] to [0, 1] */
+  function vizLine(d) {
+    const ox = 60, oy = 200, U = 160;
+    let h = '';
+    for (let k = 1; k <= 4; k++) {
+      const t = k * U / 4;
+      h += ln('grid', ox + t, oy, ox + t, oy - U) + ln('grid', ox, oy - t, ox + U, oy - t);
+    }
+    h += ln('axis', ox, oy, ox + U + 14, oy) + ln('axis', ox, oy, ox, oy - U - 14);
+    h += ln('pline', ox + U, oy, ox, oy - U);
+    const px = ox + d.p0 * U, py = oy - d.p1 * U;
+    h += ln('leg', px, py, px, oy) + ln('leg', px, py, ox, py);
+    h += ln('nz', ox, oy, px, oy) + ln('no', ox, oy, ox, py);
+    h += dot('tip', px, py, 7);
+    h += txt('lab', ox + U, oy + 18, '[1, 0]', 'middle') + txt('lab', ox - 8, oy - U + 4, '[0, 1]', 'end');
+    h += txt('cap', ox + U / 2, oy + 38, '0이 나올 확률', 'middle') + txt('cap', ox, oy - U - 22, '1이 나올 확률');
+    return h;
+  }
+  function paintViz3() {
+    const i = S.stage, d = d3();
+    let box = '0 0 300 250', title = '확률 벡터가 놓이는 직선', body = '', desc = '';
+    if (i === 0) {
+      body = vizLine(d);
+      desc = `확률 벡터 [${num(d.p0, 2)}, ${num(d.p1, 2)}]가 [1, 0]과 [0, 1]을 잇는 직선 위의 점으로 표시된다.`;
+    } else {
+      box = '0 0 300 264'; title = '벡터와 길이 1인 원';
+      body = vizPlane(d.s || d.raw, d.s ? d.raw : null, { unit: 26 });
+      desc = d.s ? `벡터 [${d.raw[0]}, ${d.raw[1]}]를 정규화한 ${shortText(d.s)}가 길이 1인 원 위에 있다.`
+        : `벡터 [${d.raw[0]}, ${d.raw[1]}]와 길이 1인 원. 제곱의 합은 ${d.sq}.`;
+    }
+    $('viz').setAttribute('viewBox', box);
+    $('vizTitle').textContent = title;
+    $('vizDesc').textContent = desc;
+    $('vizBody').innerHTML = body;
   }
 
   /* the two numbers of the state, each on its own circle of radius 1 */
@@ -957,6 +1135,40 @@ footer p { margin: 0; }
     return '';
   }
 
+  function judge3(p1, zero, one) {
+    const f = S.f, got = `0이 ${zero}번, 1이 ${one}번 나왔어요.`;
+    if (S.stage === 0) {
+      if (T.p === 64) {
+        f.e1 = true;
+        return `<p>1이 ${one}번 나왔어요. 640번 근처죠.</p>
+          <p>보통의 뽑기는 확률 벡터가 전부예요. 그런데 큐비트는 이걸로 부족해요. Daily 1에서 본 <code>[0.707, 0.707]</code>과 <code>[0.707, -0.707]</code>은 확률이 똑같이 반반인데, H를 걸면 결과가 달랐어요. 확률만 적어서는 그 차이를 담을 수 없어요.</p>`;
+      }
+      return `<p>${got}</p><p>1이 나올 확률을 64%에 맞춘 뒤 다시 뽑아 보세요.</p>`;
+    }
+    if (S.stage === 3) {
+      const tr = runCircuit(T.circuit), nm = nameOf(tr[tr.length - 1]);
+      const before = tr.length >= 2 ? nameOf(tr[tr.length - 2]) : '';
+      const signNote = nm[0] === '-' ? '<p>맨 앞에 <code>-</code>가 붙어도 측정으로는 구분할 수 없는 같은 상태예요. 전역 위상이라고 하고, 나중에 다뤄요.</p>' : '';
+      if (T.circuit[T.circuit.length - 1] === 'H' && (before === '|->' || before === '-|->')) {
+        f.k3 = true;
+        return `<p>1만 1,000번 나왔어요. <code>|-&gt;</code>에 H를 걸면 <code>|1&gt;</code>이 돼요. <code>|+&gt;</code>에 H를 걸면 <code>|0&gt;</code>이 되고요.</p>
+          <p>뽑기 결과가 같아 보여도 상태 벡터가 다르면 다른 상태예요. 그래서 큐비트는 확률 벡터가 아니라 상태 벡터로 적어요.</p>`;
+      }
+      if (nm === '|+>' || nm === '-|+>') {
+        f.k1 = true;
+        return `<p>${got} <code>|+&gt;</code>는 반반이에요.</p>${signNote}${f.k2 ? '' : '<p>이제 <code>|-&gt;</code>를 만들어 보세요. 둘째 진폭이 음수인 상태예요.</p>'}`;
+      }
+      if (nm === '|->' || nm === '-|->') {
+        f.k2 = true;
+        return `<p>${got} <code>|-&gt;</code>도 반반이에요. 뽑기만으로는 <code>|+&gt;</code>와 구분할 수 없어요.</p>${signNote}${f.k3 ? '' : '<p>여기에 H를 하나 더 걸고 다시 뽑아 보세요.</p>'}`;
+      }
+      if (p1 < 1e-9) return `<p>0만 1,000번 나왔어요. 지금 상태는 <code>${nm}</code>이에요.</p>${signNote}`;
+      if (p1 > 1 - 1e-9) return `<p>1만 1,000번 나왔어요. 지금 상태는 <code>${nm}</code>이에요.</p>${signNote}`;
+      return `<p>${got}</p>`;
+    }
+    return '';
+  }
+
   /* ---------- actions ---------- */
   function changed() { T.tape = []; T.counts = null; T.note = ''; }
   function drawOne() {
@@ -976,11 +1188,11 @@ footer p { margin: 0; }
     let one = 0;
     for (let i = 0; i < 1000; i++) if (Math.random() < p1) one++;
     T.counts = { zero: 1000 - one, one };
-    T.note = (day === 1 ? judge : judge2)(p1, 1000 - one, one);
+    T.note = (day === 1 ? judge : day === 2 ? judge2 : judge3)(p1, 1000 - one, one);
     render();
   }
   function addGate(g) {
-    if (S.stage === 3 && !S.f.s3predict) { T.rule = '먼저 위에서 예측을 골라 주세요.'; render(); return; }
+    if (day === 1 && S.stage === 3 && !S.f.s3predict) { T.rule = '먼저 위에서 예측을 골라 주세요.'; render(); return; }
     if (T.circuit.length >= 6) { T.rule = '게이트는 6개까지 걸 수 있어요. 되돌리기나 지우기를 눌러 주세요.'; render(); return; }
     T.circuit.push(g);
     T.rule = `${GATES[g].rule}. ${GATES[g].say}`;
@@ -1047,6 +1259,57 @@ footer p { margin: 0; }
     render(true);
   }
   function setPh(deg) { T.ph = deg; changed(); render(true); }
+
+  function setProb(p) { T.p = p; changed(); render(true); }
+  function setAmp(a10, sgn, flipped) {
+    T.a10 = a10; T.sgn = sgn;
+    const f = S.f;
+    let note = '';
+    if (a10 === 0 && sgn === 1) {
+      f.g1 = true;
+      note = '<p><code>|1&gt;</code>은 <code>[0, 1]</code>에 붙인 이름표예요. 측정하면 항상 1이 나와요. <code>|0&gt;</code>은 <code>[1, 0]</code>이고요.</p>';
+    } else if (a10 === 0) {
+      note = '<p>지금은 <code>-|1&gt;</code>이에요. 둘째 진폭의 부호를 뒤집으면 <code>|1&gt;</code>이 돼요.</p>';
+    } else if (a10 === 6 && sgn === 1) {
+      f.g2 = true;
+      note = `<p><code>0.6|0&gt; + 0.8|1&gt;</code>은 <code>[0.6, 0.8]</code>을 풀어 쓴 거예요. 0.6 × <code>[1, 0]</code> + 0.8 × <code>[0, 1]</code>을 계산하면 <code>[0.6, 0.8]</code>이 돼요.</p>
+        <p>모든 상태는 이렇게 <code>a|0&gt; + b|1&gt;</code> 꼴로 쓸 수 있어요.</p>`;
+    } else if (a10 === 6) {
+      f.g3 = true;
+      note = `<p>확률은 그대로 36%, 64%예요. 확률 벡터로 적으면 앞의 상태와 똑같이 <code>[0.36, 0.64]</code>가 돼요.</p>
+        <p>상태 벡터에는 부호가 남아 있어요. 이 부호가 간섭을 만들기 때문에, 큐비트는 확률 벡터가 아니라 상태 벡터로 적어요.</p>`;
+    }
+    T.note = note;
+    render(!flipped);
+  }
+  function setRaw(x, y) { T.nx = x; T.ny = y; T.normed = false; T.note = ''; render(true); }
+  function normalize() {
+    const x = T.nx, y = T.ny, sq = x * x + y * y, f = S.f;
+    if (sq === 0) {
+      T.note = '<p>길이가 0인 벡터는 나눌 수 없어서 정규화할 수 없어요. 숫자를 바꿔 보세요.</p>';
+      render(true);
+      return;
+    }
+    T.normed = true;
+    const len = Math.sqrt(sq), lenText = Number.isInteger(len) ? String(len) : `√${sq}(약 ${len.toFixed(3)})`;
+    if (x === 3 && y === 4) {
+      f.n1 = true;
+      T.note = '<p>길이 5로 나눠서 <code>[0.6, 0.8]</code>이 됐어요. 0.36 + 0.64 = 1이라 이제 상태예요. 방향은 그대로고 길이만 1이 됐어요.</p>';
+    } else if (x === y && x > 0) {
+      f.n2 = true;
+      T.note = `<p>길이 ${lenText}로 나눠서 <code>[0.707, 0.707]</code>이 됐어요.</p>
+        <p>이 상태에는 <code>|+&gt;</code>라는 이름이 있어요. <code>|0&gt;</code>에 H를 건 상태예요.</p>`;
+    } else if (x === -y && x > 0) {
+      f.n3 = true;
+      T.note = `<p>길이 ${lenText}로 나눠서 <code>[0.707, -0.707]</code>이 됐어요.</p>
+        <p>이 상태의 이름은 <code>|-&gt;</code>예요. <code>|+&gt;</code>와 확률은 같고 둘째 진폭의 부호만 달라요.</p>`;
+    } else if (sq === 1) {
+      T.note = '<p>제곱의 합이 이미 1이라서 그대로예요.</p>';
+    } else {
+      T.note = `<p>길이 ${lenText}로 나눴어요. 결과는 <code>${shortText([x / len, y / len])}</code>. 방향은 그대로고 길이만 1이 됐어요.</p>`;
+    }
+    render(true);
+  }
 
   /* ---------- rendering ---------- */
   function renderQuiz() {
@@ -1127,7 +1390,59 @@ footer p { margin: 0; }
     lines.push('qc.measure(0, 0)', '', 'counts = AerSimulator().run(qc, shots=1000).result().get_counts()', 'print(counts)');
     return lines.join('\n');
   }
-  const codeNow = () => (day === 1 ? codeText() : codeText2());
+  function codeText3() {
+    const i = S.stage;
+    if (i === 0) {
+      const dec = v => { const t = num(v, 2); return t.includes('.') ? t : t + '.0'; };
+      const a = dec(1 - T.p / 100), b = dec(T.p / 100);
+      return ['import numpy as np', '',
+        '# 확률 벡터',
+        `p = np.array([${a}, ${b}])`,
+        `print(p.sum())   # ${Number(a) + Number(b) === 1 ? '1.0' : '약 1.0'}`,
+        'draws = np.random.choice([0, 1], size=1000, p=p)',
+        '# 0이 나온 횟수와 1이 나온 횟수',
+        'print(np.bincount(draws, minlength=2))'].join('\n');
+    }
+    if (i === 1) {
+      const d = d3(), neg = d.s[1] < 0;
+      return ['import numpy as np', '',
+        'ket0 = np.array([1, 0])   # |0>',
+        'ket1 = np.array([0, 1])   # |1>',
+        `a = ${num(d.s[0], 1)}`,
+        `b = ${neg ? '-' : ''}np.sqrt(1 - a ** 2)   # 약 ${num(d.s[1], 3)}`,
+        '# a|0> + b|1>',
+        'psi = a * ket0 + b * ket1',
+        `# 약 ${shortText(d.s)}`,
+        'print(np.round(psi, 3))',
+        '# 확률',
+        'print(np.round(psi ** 2, 3))'].join('\n');
+    }
+    if (i === 2) {
+      const d = d3();
+      if (d.sq === 0) {
+        return ['import numpy as np', '',
+          'v = np.array([0, 0])',
+          'length = np.linalg.norm(v)   # 0.0',
+          '# 길이가 0이면 나눌 수 없어서 정규화할 수 없다'].join('\n');
+      }
+      return ['import numpy as np', '',
+        `v = np.array([${T.nx}, ${T.ny}])`,
+        `length = np.linalg.norm(v)   # ${Number.isInteger(d.len) ? d.len.toFixed(1) : '약 ' + d.len.toFixed(3)}`,
+        'psi = v / length   # 정규화',
+        `# 약 ${shortText([T.nx / d.len, T.ny / d.len])}`,
+        'print(np.round(psi, 3))',
+        '# 제곱의 합. 약 1.0',
+        'print(np.sum(psi ** 2))'].join('\n');
+    }
+    const lines = ['from qiskit import QuantumCircuit', 'from qiskit.quantum_info import Statevector', '', 'qc = QuantumCircuit(1)'];
+    T.circuit.forEach(g => lines.push(GATES[g].code));
+    lines.push('', `# 측정하지 않고 상태 벡터 보기. 약 ${shortText(d3().s)}`, 'psi = Statevector(qc)',
+      'print(psi.data.real.round(3))',
+      'counts = psi.sample_counts(1000)',
+      'print({str(k): int(n) for k, n in counts.items()})');
+    return lines.join('\n');
+  }
+  const codeNow = () => (day === 1 ? codeText() : day === 2 ? codeText2() : codeText3());
 
   function renderHome() {
     const n = focusDay(), lv = LEVELS[n], f = P[n].f;
@@ -1190,7 +1505,23 @@ footer p { margin: 0; }
     $('valP1').textContent = (p1 * 100).toFixed(1) + '%';
   }
 
+  const DAY3_ONLY = ['ctlProb', 'ctlAmp', 'ctlNorm', 'ketLine'];
+  function gatesUI(zHidden, zLocked, hint) {
+    $('gateZ').hidden = zHidden;
+    $('gateZ').disabled = zLocked;
+    $('gateZ').setAttribute('aria-label', zLocked ? 'Z 게이트 (H 두 번 실험 뒤에 열려요)' : 'Z 게이트 걸기');
+    $('undoBtn').disabled = T.circuit.length === 0;
+    $('clearBtn').disabled = T.circuit.length === 0;
+    $('rule').textContent = T.rule || hint;
+    const trace = runCircuit(T.circuit);
+    $('strip').innerHTML = '<span class="node start">[1, 0]</span>' +
+      T.circuit.map(g => `<span class="wire"></span><span class="node">${g}</span>`).join('') +
+      '<span class="wire"></span><span class="node end">측정</span>';
+    $('trace').textContent = trace.map((s2, k) => (k === 0 ? '시작 ' : `${T.circuit[k - 1]} `) + shortText(s2)).join('  →  ');
+  }
+
   function boardD1(i, snap) {
+    DAY3_ONLY.forEach(id => { $(id).hidden = true; });
     hide($('dial'), false); hide($('viz'), true);
     $('kv').hidden = true; $('rowP0').hidden = false; $('rowP1').hidden = false; $('sumLine').hidden = false;
     $('stateKey').textContent = '상태 [a, b]';
@@ -1212,19 +1543,7 @@ footer p { margin: 0; }
 
     const gateStage = i === 2 || i === 3;
     $('ctlGates').hidden = !gateStage;
-    if (gateStage) {
-      $('gateZ').hidden = i !== 3;
-      $('gateZ').disabled = !S.f.s3hh;
-      $('gateZ').setAttribute('aria-label', S.f.s3hh ? 'Z 게이트 걸기' : 'Z 게이트 (H 두 번 실험 뒤에 열려요)');
-      $('undoBtn').disabled = T.circuit.length === 0;
-      $('clearBtn').disabled = T.circuit.length === 0;
-      $('rule').textContent = T.rule || (i === 3 && !S.f.s3predict ? '먼저 위에서 예측을 골라 주세요.' : '게이트를 눌러 회로에 추가하세요.');
-      const trace = runCircuit(T.circuit);
-      $('strip').innerHTML = '<span class="node start">[1, 0]</span>' +
-        T.circuit.map(g => `<span class="wire"></span><span class="node">${g}</span>`).join('') +
-        '<span class="wire"></span><span class="node end">측정</span>';
-      $('trace').textContent = trace.map((s2, k) => (k === 0 ? '시작 ' : `${T.circuit[k - 1]} `) + shortText(s2)).join('  →  ');
-    }
+    if (gateStage) gatesUI(i !== 3, !S.f.s3hh, i === 3 && !S.f.s3predict ? '먼저 위에서 예측을 골라 주세요.' : '게이트를 눌러 회로에 추가하세요.');
     $('drawMany').hidden = i === 0;
     $('draws').classList.toggle('single', i === 0);
     renderResult(i, true);
@@ -1233,6 +1552,7 @@ footer p { margin: 0; }
 
   function boardD2(i) {
     const d = d2(), plane = i <= 1;
+    DAY3_ONLY.forEach(id => { $(id).hidden = true; });
     hide($('dial'), true); hide($('viz'), false);
     $('kv').hidden = !plane;
     $('rowP0').hidden = plane; $('rowP1').hidden = plane; $('sumLine').hidden = plane;
@@ -1291,6 +1611,71 @@ footer p { margin: 0; }
     $('code').textContent = codeText2();
   }
 
+  function boardD3(i, snap) {
+    const d = d3(), onDial = i === 1 || i === 3, code = $('stateText'), line = $('ketLine');
+    hide($('dial'), !onDial); hide($('viz'), onDial);
+    $('kv').hidden = true;
+    code.classList.remove('long');
+    ['ctlSlider', 'ctlXY', 'ctlRot', 'ctlPh'].forEach(id => { $(id).hidden = true; });
+    $('ctlProb').hidden = i !== 0; $('ctlAmp').hidden = i !== 1; $('ctlNorm').hidden = i !== 2; $('ctlGates').hidden = i !== 3;
+    $('ctlDraws').hidden = !(i === 0 || i === 3);
+    $('drawMany').hidden = false;
+    $('draws').classList.remove('single');
+
+    let probs = true, sum = '';
+    if (i === 0) {
+      $('stateKey').textContent = '확률 벡터';
+      code.textContent = `[${num(d.p0, 2)}, ${num(d.p1, 2)}]`;
+      line.hidden = true;
+      sum = `${num(d.p0, 2)} + ${num(d.p1, 2)} = 1`;
+      $('pbIn').value = String(T.p);
+      $('pbText').textContent = `${T.p}%`;
+      $('pbDown').disabled = T.p <= 0; $('pbUp').disabled = T.p >= 100;
+    } else if (i === 2 && !d.s) {
+      const sqr = v => (v < 0 ? `(${v})²` : `${v}²`);
+      $('stateKey').textContent = '벡터';
+      code.textContent = `[${T.nx}, ${T.ny}]`;
+      line.hidden = true;
+      probs = false;
+      sum = d.sq === 1 ? `제곱의 합 = ${sqr(T.nx)} + ${sqr(T.ny)} = 1. 이미 상태예요.`
+        : `제곱의 합 = ${sqr(T.nx)} + ${sqr(T.ny)} = ${d.sq}. 1이 아니라서 아직 상태가 아니에요.`;
+    } else {
+      $('stateKey').textContent = i === 2 ? '정규화한 상태 [a, b]' : '상태 벡터 [a, b]';
+      code.textContent = shortText(d.s);
+      line.hidden = false;
+      line.textContent = ketText(d.s);
+      sum = `a² + b² = ${d.p0.toFixed(3)} + ${d.p1.toFixed(3)} = 1`;
+    }
+    $('rowP0').hidden = !probs; $('rowP1').hidden = !probs; $('sumLine').hidden = false;
+    if (probs) setProbs(d.p0, d.p1);
+    $('sumLine').textContent = sum;
+
+    if (onDial) {
+      $('dialDesc').textContent = `화살표가 상태 ${shortText(d.s)}을 가리킨다.`;
+      setAngle(Math.atan2(d.s[1], d.s[0]), snap);
+    } else {
+      paintViz3();
+    }
+    if (i === 1) {
+      $('amIn').value = String(T.a10);
+      $('amText').textContent = num(T.a10 / 10, 1);
+      $('amDown').disabled = T.a10 <= 0; $('amUp').disabled = T.a10 >= 10;
+      $('sgnBtn').disabled = T.a10 === 10;
+    } else if (i === 2) {
+      $('nxIn').value = String(T.nx); $('nyIn').value = String(T.ny);
+      $('nxText').textContent = String(T.nx); $('nyText').textContent = String(T.ny);
+      $('nxDown').disabled = T.nx <= -4; $('nxUp').disabled = T.nx >= 4;
+      $('nyDown').disabled = T.ny <= -4; $('nyUp').disabled = T.ny >= 4;
+      $('normBtn').disabled = T.normed;
+    } else if (i === 3) {
+      gatesUI(false, false, '게이트를 눌러 회로에 추가하세요.');
+    }
+    renderResult(i, i === 0 || i === 3);
+    $('codeTitle').textContent = i === 3 ? '같은 실험을 Qiskit으로' : '같은 계산을 파이썬으로';
+    $('codeLead').textContent = i === 3 ? '지금 화면의 회로를 파이썬 코드로 쓰면 이렇게 돼요.' : '지금 화면의 숫자를 파이썬으로 계산하면 이렇게 돼요.';
+    $('code').textContent = codeText3();
+  }
+
   function render(snap) {
     $('home').hidden = view !== 'home';
     $('play').hidden = view !== 'play';
@@ -1334,7 +1719,7 @@ footer p { margin: 0; }
       if (S.f.quiz) renderClear();
       return;
     }
-    if (day === 1) boardD1(i, snap); else boardD2(i);
+    if (day === 1) boardD1(i, snap); else if (day === 2) boardD2(i); else boardD3(i, snap);
   }
 
   /* ---------- views: the start screen, and each day at #daily-N ---------- */
@@ -1414,6 +1799,21 @@ footer p { margin: 0; }
   $('phDown').addEventListener('click', () => setPh(clamp(T.ph - 5, 0, 360)));
   $('phUp').addEventListener('click', () => setPh(clamp(T.ph + 5, 0, 360)));
 
+  $('pbIn').addEventListener('input', e => setProb(Number(e.target.value)));
+  $('pbDown').addEventListener('click', () => setProb(clamp(T.p - 1, 0, 100)));
+  $('pbUp').addEventListener('click', () => setProb(clamp(T.p + 1, 0, 100)));
+  $('amIn').addEventListener('input', e => setAmp(Number(e.target.value), T.sgn));
+  $('amDown').addEventListener('click', () => setAmp(clamp(T.a10 - 1, 0, 10), T.sgn));
+  $('amUp').addEventListener('click', () => setAmp(clamp(T.a10 + 1, 0, 10), T.sgn));
+  $('sgnBtn').addEventListener('click', () => setAmp(T.a10, -T.sgn, true));
+  $('nxIn').addEventListener('input', e => setRaw(Number(e.target.value), T.ny));
+  $('nyIn').addEventListener('input', e => setRaw(T.nx, Number(e.target.value)));
+  $('nxDown').addEventListener('click', () => setRaw(clamp(T.nx - 1, -4, 4), T.ny));
+  $('nxUp').addEventListener('click', () => setRaw(clamp(T.nx + 1, -4, 4), T.ny));
+  $('nyDown').addEventListener('click', () => setRaw(T.nx, clamp(T.ny - 1, -4, 4)));
+  $('nyUp').addEventListener('click', () => setRaw(T.nx, clamp(T.ny + 1, -4, 4)));
+  $('normBtn').addEventListener('click', normalize);
+
   $('predict').addEventListener('click', e => {
     const b = e.target.closest('[data-pred]');
     const pd = LV.stages[S.stage].predict;
@@ -1472,13 +1872,13 @@ footer p { margin: 0; }
     if (data.T && keptDay === day) {
       T.deg = Number(data.T.deg) || 0;
       T.circuit = (data.T.circuit || []).filter(g => GATES[g]);
-      ['x', 'y', 'rot', 'ph'].forEach(k => { if (typeof data.T[k] === 'number') T[k] = data.T[k]; });
+      ['x', 'y', 'rot', 'ph', 'p', 'a10', 'sgn', 'nx', 'ny'].forEach(k => { if (typeof data.T[k] === 'number') T[k] = data.T[k]; });
     }
     if (r.blocked) $('dayHint').textContent = blockedHint(r.blocked);
     render(true);
   }
   const hot = window.claude && window.claude.hot;
-  if (hot && hot.snapshot) hot.snapshot(() => ({ P, day, T: { deg: T.deg, circuit: T.circuit, x: T.x, y: T.y, rot: T.rot, ph: T.ph } }));
+  if (hot && hot.snapshot) hot.snapshot(() => ({ P, day, T: { deg: T.deg, circuit: T.circuit, x: T.x, y: T.y, rot: T.rot, ph: T.ph, p: T.p, a10: T.a10, sgn: T.sgn, nx: T.nx, ny: T.ny } }));
   if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();
 </script>
