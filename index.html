@@ -203,6 +203,17 @@ button { font: inherit; color: inherit; }
 .trace { margin: 0; font-family: var(--font-mono); font-size: 13px; color: var(--muted); overflow-x: auto; white-space: nowrap; }
 .draws { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .draws.single { grid-template-columns: 1fr; }
+.shots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.runs { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 2px; font-family: var(--font-mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+.flow { display: grid; gap: 6px; }
+.flow .fr { display: grid; grid-template-columns: 3.4em minmax(0, 1fr); gap: 8px; align-items: center; }
+.flow .fr.split { grid-template-columns: 3.4em minmax(0, 1fr) minmax(0, 1fr); }
+.flow .fk { font-family: var(--font-display); font-size: 18px; line-height: 1.1; }
+.flow .fb { display: grid; gap: 2px; min-width: 0; border: 1.5px solid var(--line); border-radius: 10px; padding: 7px 10px; font-size: 14px; }
+.flow .fb.z { border-color: var(--zero); }
+.flow .fb.o { border-color: var(--one); }
+.flow .fb small { font-size: 12.5px; color: var(--muted); }
+.flow code { font-size: 14px; }
 
 .result { display: grid; gap: 12px; }
 .tape { display: flex; flex-wrap: wrap; gap: 6px; min-height: 36px; align-items: center; }
@@ -322,7 +333,7 @@ footer p { margin: 0; }
     </div>
     <div class="journey panel">
       <h2>Daily 1부터 Daily 30까지</h2>
-      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 4부터는 준비되는 대로 추가돼요.</p>
+      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 5부터는 준비되는 대로 추가돼요.</p>
       <div id="weeks"></div>
     </div>
   </section>
@@ -364,6 +375,7 @@ footer p { margin: 0; }
         <desc id="vizDesc"></desc>
         <g id="vizBody"></g>
       </svg>
+      <div class="flow" id="flow" role="group" aria-label="큐비트가 단계마다 놓이는 상태" hidden></div>
       <div class="readout" aria-live="polite">
         <div class="state"><span class="k" id="stateKey">상태 [a, b]</span><code id="stateText">[1.000, 0.000]</code></div>
         <p class="ket" id="ketLine" hidden></p>
@@ -483,6 +495,41 @@ footer p { margin: 0; }
           <button type="button" class="btn primary" id="normBtn">정규화하기</button>
         </div>
       </div>
+      <div class="ctl" id="ctlGuess" hidden>
+        <span class="lbl" id="pickLabel">측정할 상태 고르기</span>
+        <div class="choices" id="bornPick" role="group" aria-labelledby="pickLabel"></div>
+        <label for="gsIn">1,000번 중 1이 나올 횟수 예상 <span class="mono" id="gsText">500번</span></label>
+        <div class="slide">
+          <button type="button" class="btn small" id="gsDown" aria-label="예상 10번 줄이기">−</button>
+          <input type="range" id="gsIn" min="0" max="1000" step="10" value="500">
+          <button type="button" class="btn small" id="gsUp" aria-label="예상 10번 늘리기">+</button>
+        </div>
+        <p class="rule">보른 규칙: 1이 나올 확률은 둘째 진폭의 크기를 제곱한 값이에요.</p>
+      </div>
+      <div class="ctl" id="ctlShots" hidden>
+        <span class="lbl" id="shotsLabel">몇 번 뽑을까요?</span>
+        <div class="shots" role="group" aria-labelledby="shotsLabel">
+          <button type="button" class="btn" data-shots="10">10번</button>
+          <button type="button" class="btn" data-shots="100">100번</button>
+          <button type="button" class="btn" data-shots="1000">1,000번</button>
+          <button type="button" class="btn" data-shots="10000">10,000번</button>
+        </div>
+      </div>
+      <div class="ctl" id="ctlMeas" hidden>
+        <div class="draws">
+          <button type="button" class="btn primary" id="measBtn">측정하기</button>
+          <button type="button" class="btn" id="prepBtn">새 큐비트 준비</button>
+        </div>
+        <p class="rule" id="measRule" aria-live="polite"></p>
+      </div>
+      <div class="ctl" id="ctlMid" hidden>
+        <span class="lbl">회로</span>
+        <div class="strip" id="strip4" aria-label="지금 회로"></div>
+        <div class="gates">
+          <button type="button" class="btn small" id="midBtn" aria-pressed="false">가운데에 측정 넣기</button>
+        </div>
+        <p class="rule" id="midRule" aria-live="polite"></p>
+      </div>
       <div class="ctl" id="ctlDraws">
         <div class="draws" id="draws">
           <button type="button" class="btn" id="drawOne">1번 뽑기</button>
@@ -529,7 +576,7 @@ footer p { margin: 0; }
 
   </main>
 
-  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 3까지 만들어져 있어요.</p></footer>
+  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 4까지 만들어져 있어요.</p></footer>
 </div>
 
 <script>
@@ -539,8 +586,8 @@ footer p { margin: 0; }
   const hide = (el, off) => { if (off) el.setAttribute('hidden', ''); else el.removeAttribute('hidden'); };
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const SQ = Math.SQRT1_2, RAD = Math.PI / 180;
-  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1', 3: 'qubit-quest-d3-v1' };
-  const BUILT = 3;
+  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1', 3: 'qubit-quest-d3-v1', 4: 'qubit-quest-d4-v1' };
+  const BUILT = 4;
   const CX = 150, CY = 128, R = 88;
 
   const tidy = v => {
@@ -706,6 +753,61 @@ footer p { margin: 0; }
     k1: false, k2: false, k3: false,
     quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
 
+  /* ---------- Daily 4: 측정과 보른 규칙 ---------- */
+  const BORN = [
+    { a: [0.8, 0], b: [0.6, 0], text: '[0.8, 0.6]', why: '0.6 × 0.6 = 0.36' },
+    { a: [0.3, 0], b: [-Math.sqrt(0.91), 0], text: '[0.3, -0.954]', why: '0.3 × 0.3 = 0.09이고 나머지는 1 − 0.09 = 0.91' },
+    { a: [0.6, 0], b: [0, 0.8], text: '[0.6, 0.8j]', why: '0.8j의 크기는 0.8이고 0.8 × 0.8 = 0.64' }
+  ];
+  const STAGES4 = [
+    { name: '보른 규칙',
+      intro: '진폭에서 확률을 읽는 규칙을 보른 규칙이라고 해요. 0이 나올 확률은 첫째 진폭의 크기를 제곱한 값, 1이 나올 확률은 둘째 진폭의 크기를 제곱한 값이에요. 뽑기 전에 손으로 계산해서, 1,000번 중 1이 몇 번 나올지 맞혀 보세요.',
+      goals: [
+        { text: '<code>[0.8, 0.6]</code>에서 1이 나올 횟수 맞히기', done: f => f.h1 },
+        { text: '<code>[0.3, -0.954]</code>에서 1이 나올 횟수 맞히기', done: f => f.h2 },
+        { text: '<code>[0.6, 0.8j]</code>에서 1이 나올 횟수 맞히기', done: f => f.h3 }] },
+    { name: '뽑을수록 가까워진다',
+      intro: '<code>[0.6, 0.8]</code>에서 1이 나올 확률은 64%예요. 그런데 10번 뽑으면 꼭 6번이나 7번이 나올까요? 뽑는 횟수를 바꿔 가며 1의 비율이 어떻게 되는지 보세요.',
+      goals: [
+        { text: '10번 뽑기', done: f => f.i1 },
+        { text: '1,000번 뽑기', done: f => f.i2 },
+        { text: '10,000번 뽑기', done: f => f.i3 }] },
+    { name: '측정하면 바뀐다',
+      intro: '지금까지는 1,000번을 매번 새 큐비트로 뽑았어요. 이번에는 큐비트 하나를 계속 측정해 볼게요. <code>|+&gt;</code>는 측정하면 0과 1이 반반 나오는 상태예요. 한 번 측정한 뒤에도 반반일까요?',
+      goals: [
+        { text: '<code>|+&gt;</code>를 측정하기', done: f => f.j1 },
+        { text: '같은 큐비트를 세 번 더 측정하기', done: f => f.j2 },
+        { text: '새 큐비트로 다시 해서 0과 1을 모두 보기', done: f => f.j0 && f.j9 }] },
+    { name: '가운데에서 측정하면',
+      intro: 'H를 두 번 걸면 항상 0이 나와요. 두 갈래가 서로 지워지는 간섭 때문이에요. 그 두 H 사이에서 큐비트를 한 번 측정하면 어떻게 될까요?',
+      predict: { label: 'H와 H 사이에서 측정하면, 마지막 측정 결과는 어떻게 될까요?', key: 'm0', lock: f => f.mPeek || f.mSeen,
+        opts: [['zero', '여전히 0만 나온다'], ['half', '반반이 된다'], ['one', '1만 나온다']] },
+      goals: [
+        { text: '결과 예측하기', done: f => !!f.m0 },
+        { text: '가운데 측정 없이 1,000번 뽑기', done: f => f.m1 },
+        { text: '가운데에서 측정하고 1,000번 뽑기', done: f => f.m2 }] },
+    { name: 'Daily 4 보스',
+      intro: '배운 내용을 확인하는 문제 다섯 개예요. 모두 맞히면 Daily 4 클리어예요.',
+      goals: [{ text: '문제 5개 모두 맞히기', done: f => f.quiz }] }
+  ];
+
+  const QUIZ4 = [
+    { q: '<code>[0.8, 0.6]</code>을 1,000번 측정하면 1은 몇 번쯤 나올까요?', opts: ['360번 근처', '600번 근처', '640번 근처', '800번 근처'], a: 0,
+      why: '1이 나올 확률은 둘째 진폭의 제곱이에요. 0.6 × 0.6 = 0.36.' },
+    { q: '<code>[0.6, 0.8j]</code>에서 1이 나올 확률은?', opts: ['36%', '64%', '80%', '계산할 수 없다'], a: 1,
+      why: '확률은 진폭의 크기를 제곱한 값이에요. 0.8j의 크기는 0.8이라 0.64예요.' },
+    { q: '<code>|+&gt;</code>를 측정해 1이 나왔어요. 바로 다시 측정하면?', opts: ['0과 1이 반반 나온다', '항상 1이 나온다', '항상 0이 나온다'], a: 1,
+      why: '측정하는 순간 상태가 |1>이 됐어요. 그 뒤로는 몇 번을 측정해도 1이에요.' },
+    { q: '확률이 64%인 결과를 10번 뽑았더니 8번 나왔어요. 맞는 설명은?', opts: ['계산이 틀렸다', '적게 뽑으면 비율이 확률에서 벗어날 수 있다', '확률이 80%로 바뀌었다'], a: 1,
+      why: '뽑기는 랜덤이라 적게 뽑으면 크게 흔들려요. 많이 뽑을수록 비율이 확률에 가까워져요.' },
+    { q: 'H, 측정, H 순서로 건 뒤 다시 측정하면?', opts: ['0만 나온다', '0과 1이 반반 나온다', '1만 나온다'], a: 1,
+      why: '가운데 측정이 상태를 |0> 아니면 |1>로 정해 버려서, H 두 번의 간섭이 사라져요.' }
+  ];
+
+  const fresh4 = () => ({ h1: false, h2: false, h3: false, i1: false, i2: false, i3: false,
+    j1: false, j2: false, j0: false, j9: false, m0: '', mPeek: false, mSeen: false, m1: false, m2: false,
+    quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
+
   const LEVELS = {
     1: { title: '큐비트와 측정', stages: STAGES1, quiz: QUIZ1, fresh: fresh1, touched: f => f.s0 > 0,
       learned: [
@@ -730,7 +832,15 @@ footer p { margin: 0; }
         '|0>은 [1, 0], |1>은 [0, 1]의 이름표다. 모든 상태는 a|0> + b|1>로 쓸 수 있다.',
         '상태 벡터는 제곱의 합이 1이어야 한다. 길이로 나눠 1로 맞추는 것이 정규화다.',
         '|+>와 |->는 확률이 같지만 다른 상태다. 확률 벡터로는 이 차이를 적을 수 없다.'],
-      next: 'Daily 4는 측정과 보른 규칙이에요. 아직 준비 중이에요.' }
+      next: 'Daily 4가 열렸어요. 측정과 보른 규칙이에요.' },
+    4: { title: '측정과 보른 규칙', stages: STAGES4, quiz: QUIZ4, fresh: fresh4, touched: f => f.h1 || f.h2 || f.h3 || f.i1,
+      learned: [
+        '보른 규칙: 결과가 나올 확률은 그 진폭의 크기를 제곱한 값이다. 음수나 복소수 진폭도 크기만 본다.',
+        '확률은 많이 뽑았을 때의 비율이다. 적게 뽑으면 크게 흔들리고, 많이 뽑을수록 가까워진다.',
+        '측정하면 상태가 바뀐다. 0이 나오면 |0>, 1이 나오면 |1>이 되고, 다시 측정하면 같은 값이 나온다.',
+        '중간에 측정하면 간섭이 사라진다. H, H는 항상 0이지만 H, 측정, H는 반반이다.',
+        '그래서 양자 회로에서는 보통 측정을 맨 끝에 둔다.'],
+      next: 'Daily 5는 행렬과 유니터리예요. 아직 준비 중이에요.' }
   };
 
   const WEEKS = ['1주 · 한 큐비트', '2주 · 여러 큐비트와 얽힘', '3주 · 회로와 프로토콜', '4주 · 첫 알고리즘', '5주 · 다음 알고리즘'];
@@ -748,10 +858,11 @@ footer p { margin: 0; }
   const LOCK = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" rx="1.2" fill="currentColor"></rect><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>';
 
   /* ---------- progress: one record per day, plus what is on screen right now ---------- */
-  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() }, 3: { stage: 0, f: fresh3() } };
+  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() }, 3: { stage: 0, f: fresh3() }, 4: { stage: 0, f: fresh4() } };
   let day = 1, S = P[1], LV = LEVELS[1];
   const freshT = () => ({ deg: 0, circuit: [], tape: [], counts: null, note: '', rule: '',
-    wrong: LV.quiz.map(() => []), x: 2, y: 1, rot: 0, ph: 0, p: 50, a10: 10, sgn: 1, nx: 2, ny: 1, normed: false });
+    wrong: LV.quiz.map(() => []), x: 2, y: 1, rot: 0, ph: 0, p: 50, a10: 10, sgn: 1, nx: 2, ny: 1, normed: false,
+    bq: 0, guess: 500, runs: {}, col: null, rep: 0, mid: false });
   let T = freshT();
   let view = 'home';
 
@@ -850,7 +961,26 @@ footer p { margin: 0; }
     const s = runCircuit(T.circuit).pop();
     return { s, p0: s[0] ** 2, p1: s[1] ** 2 };
   }
-  const p1Now = () => (day === 1 ? stateNow()[1] ** 2 : day === 2 ? d2().p1 : d3().p1);
+
+  /* ---------- Daily 4: what is being measured on each stage ---------- */
+  function d4() {
+    const i = S.stage;
+    if (i === 0) {
+      const q = BORN[T.bq];
+      return { a: q.a, b: q.b, p0: q.a[0] ** 2 + q.a[1] ** 2, p1: q.b[0] ** 2 + q.b[1] ** 2 };
+    }
+    if (i === 1) return { s: [0.6, 0.8], p0: 0.36, p1: 0.64 };
+    if (i === 2) {
+      const s = T.col === null ? [SQ, SQ] : (T.col ? [0, 1] : [1, 0]);
+      return { s, p0: s[0] ** 2, p1: s[1] ** 2 };
+    }
+    return { p0: T.mid ? 0.5 : 1, p1: T.mid ? 0.5 : 0 };
+  }
+  /* the answer stays hidden until this state has been drawn or already solved */
+  const bornKnown = () => !!T.counts || !!S.f['h' + (T.bq + 1)];
+  const big = v => v.toLocaleString('en-US');
+  const ketC = q => { const b = cTight(q.b), neg = b[0] === '-'; return `${cTight(q.a)}|0> ${neg ? '-' : '+'} ${neg ? b.slice(1) : b}|1>`; };
+  const p1Now = () => (day === 1 ? stateNow()[1] ** 2 : day === 2 ? d2().p1 : day === 3 ? d3().p1 : d4().p1);
 
   /* ---------- dial (Daily 1) ---------- */
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -950,6 +1080,21 @@ footer p { margin: 0; }
     h += txt('cap', ox + U / 2, oy + 38, '0이 나올 확률', 'middle') + txt('cap', ox, oy - U - 22, '1이 나올 확률');
     return h;
   }
+  function paintViz4(d) {
+    $('viz').setAttribute('viewBox', '0 0 300 182');
+    $('vizTitle').textContent = '상태의 두 진폭';
+    $('vizDesc').textContent = `첫째 진폭은 ${cTight(d.a)}, 둘째 진폭은 ${cTight(d.b)}.`;
+    $('vizBody').innerHTML = vizPair(d, cargDeg(d.b), '진폭');
+  }
+  function flowHTML(mid) {
+    const row = (k, body) => `<div class="fr"><span class="fk">${k}</span><span class="fb">${body}</span></div>`;
+    const split = (k, l, r, tint) => `<div class="fr split"><span class="fk">${k}</span><span class="fb${tint ? ' z' : ''}">${l}</span><span class="fb${tint ? ' o' : ''}">${r}</span></div>`;
+    const top = row('시작', '<code>|0&gt;</code>') + row('H', '<code>|+&gt;</code><small>두 갈래로 갈라져요</small>');
+    if (!mid) return top + row('H', '<code>|0&gt;</code><small>두 갈래가 다시 합쳐져요</small>') + row('측정', '0만 나와요');
+    return top + split('측정', '<small>0이 나오면</small><code>|0&gt;</code>', '<small>1이 나오면</small><code>|1&gt;</code>', true)
+      + split('H', '<code>|+&gt;</code>', '<code>|-&gt;</code>')
+      + split('측정', '0과 1이 반반', '0과 1이 반반');
+  }
   function paintViz3() {
     const i = S.stage, d = d3();
     let box = '0 0 300 250', title = '확률 벡터가 놓이는 직선', body = '', desc = '';
@@ -969,15 +1114,15 @@ footer p { margin: 0; }
   }
 
   /* the two numbers of the state, each on its own circle of radius 1 */
-  function vizPair(d) {
-    const r = 62, cy = 92, c1 = 80, c2 = 220;
-    let h = txt('ttl', c1, 16, '첫째 숫자 a', 'middle') + txt('ttl', c2, 16, '둘째 숫자 b', 'middle');
+  function vizPair(d, ang, word) {
+    const r = 62, cy = 92, c1 = 80, c2 = 220, w = word || '숫자';
+    let h = txt('ttl', c1, 16, `첫째 ${w} a`, 'middle') + txt('ttl', c2, 16, `둘째 ${w} b`, 'middle');
     [c1, c2].forEach(c => {
       h += `<circle class="ring" cx="${c}" cy="${cy}" r="${r}"></circle>` + ln('grid', c - r, cy, c + r, cy) + ln('grid', c, cy - r, c, cy + r);
     });
     const ax = c1 + d.a[0] * r, bx = c2 + d.b[0] * r, by = cy - d.b[1] * r;
     h += ln('nz', c1, cy, ax, cy) + dot('hub', c1, cy, 4) + dot('fz', ax, cy, 6);
-    h += arc(c2, cy, 16, T.ph) + ln('no', c2, cy, bx, by) + dot('hub', c2, cy, 4) + dot('fo', bx, by, 6);
+    h += arc(c2, cy, 16, ang) + ln('no', c2, cy, bx, by) + dot('hub', c2, cy, 4) + dot('fo', bx, by, 6);
     h += txt('lab', c1, 174, cTight(d.a), 'middle') + txt('lab', c2, 174, cTight(d.b), 'middle');
     return h;
   }
@@ -1013,7 +1158,7 @@ footer p { margin: 0; }
       desc = `3 + 4j를 ${T.rot}도 돌린 화살표가 ${cWide(d.z)}를 가리킨다.`;
     } else if (i === 2) {
       box = '0 0 300 182'; title = '상태의 두 숫자';
-      body = vizPair(d);
+      body = vizPair(d, T.ph);
       desc = `첫째 숫자는 ${cTight(d.a)}, 둘째 숫자는 ${cTight(d.b)}. 두 화살표의 길이는 같다.`;
     } else {
       box = '0 0 300 192'; title = '두 숫자를 더한 것과 뺀 것';
@@ -1169,6 +1314,39 @@ footer p { margin: 0; }
     return '';
   }
 
+  function judge4(p1, zero, one) {
+    const f = S.f;
+    if (S.stage === 0) {
+      const q = BORN[T.bq], want = Math.round(1000 * p1);
+      const rule = `<p>보른 규칙으로 계산하면 ${q.why}. 그래서 1,000번 중 ${want}번 근처예요.</p>`;
+      if (Math.abs(T.guess - want) <= 20) {
+        f['h' + (T.bq + 1)] = true;
+        const extra = T.bq === 1 ? '<p>진폭이 음수여도 제곱하면 양수예요. 부호는 확률에 영향을 주지 않아요.</p>'
+          : T.bq === 2 ? '<p>진폭이 복소수여도 크기만 봐요. <code>[0.6, 0.8]</code>과 확률이 똑같아요.</p>' : '';
+        const more = f.h1 && f.h2 && f.h3 ? '' : '<p>위에서 다른 상태를 골라 보세요.</p>';
+        return `<p>예상 ${big(T.guess)}번, 실제 ${big(one)}번이에요. 계산이 맞았어요.</p>${rule}${extra}${more}`;
+      }
+      return `<p>예상은 ${big(T.guess)}번이었는데 실제로는 ${big(one)}번 나왔어요.</p>${rule}<p>예상을 고친 뒤 다시 뽑아 보세요.</p>`;
+    }
+    if (S.stage === 3) {
+      if (!T.mid) {
+        f.m1 = true;
+        return `<p>0만 1,000번 나왔어요.</p>
+          <p>첫 H가 만든 두 갈래를 둘째 H가 다시 합쳐요. 1로 가는 쪽은 서로 지워져서 0만 남아요. Daily 1에서 본 간섭이에요.</p>${f.m2 ? '' : '<p>이제 가운데에 측정을 넣고 다시 뽑아 보세요.</p>'}`;
+      }
+      let verdict = '';
+      if (!f.mSeen) {
+        f.mSeen = true;
+        verdict = f.m0 === 'half' ? '예측이 맞았어요. ' : `예측은 "${predText(LV.stages[3], f.m0)}"였죠. 실제로는 반반이에요. `;
+      }
+      f.m2 = true;
+      return `<p>${verdict}0이 ${zero}번, 1이 ${one}번 나왔어요.</p>
+        <p>가운데에서 측정하는 순간 상태가 <code>|0&gt;</code> 아니면 <code>|1&gt;</code>로 정해져요. 갈래가 하나만 남아서 지워질 상대가 없고, 둘째 H는 그걸 다시 반반으로 만들어요.</p>
+        <p>측정은 간섭을 없애요. 그래서 양자 회로에서는 보통 측정을 맨 끝에 둬요.</p>`;
+    }
+    return '';
+  }
+
   /* ---------- actions ---------- */
   function changed() { T.tape = []; T.counts = null; T.note = ''; }
   function drawOne() {
@@ -1188,7 +1366,7 @@ footer p { margin: 0; }
     let one = 0;
     for (let i = 0; i < 1000; i++) if (Math.random() < p1) one++;
     T.counts = { zero: 1000 - one, one };
-    T.note = (day === 1 ? judge : day === 2 ? judge2 : judge3)(p1, 1000 - one, one);
+    T.note = (day === 1 ? judge : day === 2 ? judge2 : day === 3 ? judge3 : judge4)(p1, 1000 - one, one);
     render();
   }
   function addGate(g) {
@@ -1283,6 +1461,61 @@ footer p { margin: 0; }
     render(!flipped);
   }
   function setRaw(x, y) { T.nx = x; T.ny = y; T.normed = false; T.note = ''; render(true); }
+
+  function setGuess(v) { T.guess = v; render(true); }
+  function drawShots(n) {
+    const f = S.f, pct = v => (v * 100).toFixed(1) + '%';
+    let one = 0;
+    for (let k = 0; k < n; k++) if (Math.random() < 0.64) one++;
+    T.counts = { zero: n - one, one, n };
+    T.runs[n] = one;
+    T.tape = [];
+    if (n === 10) f.i1 = true;
+    if (n === 1000) f.i2 = true;
+    if (n === 10000) f.i3 = true;
+    const say = n === 10 ? '10번만 뽑으면 비율이 64%에서 크게 벗어나기도 해요. 여러 번 눌러 보면 매번 달라요.'
+      : n === 100 ? '100번이면 64% 근처로 모이기 시작해요.'
+      : n === 1000 ? '1,000번이면 보통 640번에서 15번 안팎으로 벗어나요. 비율로는 1.5%p쯤이에요.'
+      : '10,000번이면 64%에 거의 붙어요. 확률은 많이 뽑았을 때의 비율이에요.';
+    const list = [10, 100, 1000, 10000].filter(k => T.runs[k] !== undefined)
+      .map(k => `<li>${big(k)}번 뽑기: 1의 비율 ${pct(T.runs[k] / k)}</li>`).join('');
+    T.note = `<p>${big(n)}번 중 1이 ${big(one)}번 나왔어요. ${say}</p><ul class="runs">${list}</ul>`;
+    render();
+  }
+  function measureOnce() {
+    const f = S.f;
+    if (T.col === null) {
+      T.col = Math.random() < 0.5 ? 1 : 0;
+      T.rep = 1;
+      T.tape = [T.col];
+      f.j1 = true;
+      if (T.col) f.j9 = true; else f.j0 = true;
+      T.note = `<p>${T.col}이 나왔어요. 그 순간 상태가 <code>|${T.col}&gt;</code>이 됐어요. 측정 전의 <code>[0.707, 0.707]</code>은 남아 있지 않아요.</p>
+        <p>같은 큐비트를 다시 측정해 보세요.</p>`;
+    } else {
+      T.rep += 1;
+      T.tape.push(T.col);
+      if (T.tape.length > 14) T.tape.shift();
+      if (T.rep >= 4) f.j2 = true;
+      T.note = T.rep >= 4
+        ? `<p>${T.rep}번 측정해서 전부 ${T.col}이에요. 이미 <code>|${T.col}&gt;</code>이 됐으니 몇 번을 측정해도 같아요.</p>
+          <p>측정은 상태를 읽기만 하는 게 아니라 바꿔요. 반반은 첫 측정에서만 일어나요.${f.j0 && f.j9 ? '' : ' 새 큐비트를 준비해서 다른 결과도 나오는지 보세요.'}</p>`
+        : `<p>또 ${T.col}이에요. 이 큐비트를 ${T.rep}번 측정했어요.</p>`;
+    }
+    render();
+  }
+  function prepare() {
+    T.col = null; T.rep = 0; T.tape = [];
+    T.note = '<p>새 큐비트를 <code>|+&gt;</code>로 준비했어요. 이번에는 뭐가 나올까요?</p>';
+    render();
+  }
+  function toggleMid() {
+    if (!S.f.m0) return;
+    T.mid = !T.mid;
+    if (T.mid) S.f.mPeek = true;
+    changed();
+    render(true);
+  }
   function normalize() {
     const x = T.nx, y = T.ny, sq = x * x + y * y, f = S.f;
     if (sq === 0) {
@@ -1442,7 +1675,45 @@ footer p { margin: 0; }
       'print({str(k): int(n) for k, n in counts.items()})');
     return lines.join('\n');
   }
-  const codeNow = () => (day === 1 ? codeText() : day === 2 ? codeText2() : codeText3());
+  function codeText4() {
+    const i = S.stage;
+    if (i === 0) {
+      const d = d4(), known = bornKnown();
+      const lines = ['import numpy as np', '',
+        `state = np.array(${BORN[T.bq].text})`,
+        '# 보른 규칙: 확률 = 진폭 크기의 제곱',
+        'probs = np.abs(state) ** 2'];
+      if (known) lines.push(`# 약 [${num(d.p0, 2)}, ${num(d.p1, 2)}]`);
+      lines.push('print(np.round(probs, 3))',
+        known ? `# 1,000번 중 1이 나올 횟수. 약 ${Math.round(1000 * d.p1)}` : '# 1,000번 중 1이 나올 횟수',
+        'print(round(1000 * probs[1]))');
+      return lines.join('\n');
+    }
+    if (i === 1) {
+      return ['from qiskit.quantum_info import Statevector', '',
+        'psi = Statevector([0.6, 0.8])',
+        'for shots in (10, 100, 1000, 10000):',
+        '    counts = psi.sample_counts(shots)',
+        "    ones = int(counts.get('1', 0))",
+        '    # 뽑을수록 비율이 0.64에 가까워진다',
+        '    print(shots, ones, ones / shots)'].join('\n');
+    }
+    if (i === 2) {
+      return ['from qiskit.quantum_info import Statevector', '',
+        "psi = Statevector.from_label('+')",
+        '# 측정하면 결과와 측정 뒤의 상태가 나온다',
+        'outcome, psi = psi.measure()',
+        'print(outcome, psi.data.real.round(3))',
+        '# 같은 큐비트를 다시 측정하면 같은 결과',
+        'outcome, psi = psi.measure()',
+        'print(outcome, psi.data.real.round(3))'].join('\n');
+    }
+    const lines = ['from qiskit import QuantumCircuit', 'from qiskit_aer import AerSimulator', '', 'qc = QuantumCircuit(1, 1)', 'qc.h(0)'];
+    if (T.mid) lines.push('# 가운데에서 측정', 'qc.measure(0, 0)');
+    lines.push('qc.h(0)', 'qc.measure(0, 0)', '', 'counts = AerSimulator().run(qc, shots=1000).result().get_counts()', 'print(counts)');
+    return lines.join('\n');
+  }
+  const codeNow = () => (day === 1 ? codeText() : day === 2 ? codeText2() : day === 3 ? codeText3() : codeText4());
 
   function renderHome() {
     const n = focusDay(), lv = LEVELS[n], f = P[n].f;
@@ -1481,14 +1752,17 @@ footer p { margin: 0; }
     }
     $('counts').hidden = !T.counts;
     if (T.counts) {
-      $('fillC0').style.width = (T.counts.zero / 10) + '%';
-      $('fillC1').style.width = (T.counts.one / 10) + '%';
+      const shots = T.counts.n || 1000;
+      $('fillC0').style.width = (T.counts.zero / shots * 100) + '%';
+      $('fillC1').style.width = (T.counts.one / shots * 100) + '%';
       $('valC0').textContent = String(T.counts.zero);
       $('valC1').textContent = String(T.counts.one);
       const parts = [];
       if (T.counts.zero) parts.push(`'0': ${T.counts.zero}`);
       if (T.counts.one) parts.push(`'1': ${T.counts.one}`);
-      $('dict').textContent = `Qiskit 출력 형식: {${parts.join(', ')}}`;
+      $('dict').textContent = T.counts.n
+        ? `1의 비율 ${(T.counts.one / shots * 100).toFixed(1)}%. 확률은 64%예요.`
+        : `Qiskit 출력 형식: {${parts.join(', ')}}`;
     }
     const done = stageDone(i);
     $('note').hidden = !T.note;
@@ -1505,7 +1779,8 @@ footer p { margin: 0; }
     $('valP1').textContent = (p1 * 100).toFixed(1) + '%';
   }
 
-  const DAY3_ONLY = ['ctlProb', 'ctlAmp', 'ctlNorm', 'ketLine'];
+  const DAY4_ONLY = ['ctlGuess', 'ctlShots', 'ctlMeas', 'ctlMid', 'flow'];
+  const DAY3_ONLY = ['ctlProb', 'ctlAmp', 'ctlNorm', 'ketLine'].concat(DAY4_ONLY);
   function gatesUI(zHidden, zLocked, hint) {
     $('gateZ').hidden = zHidden;
     $('gateZ').disabled = zLocked;
@@ -1616,7 +1891,7 @@ footer p { margin: 0; }
     hide($('dial'), !onDial); hide($('viz'), onDial);
     $('kv').hidden = true;
     code.classList.remove('long');
-    ['ctlSlider', 'ctlXY', 'ctlRot', 'ctlPh'].forEach(id => { $(id).hidden = true; });
+    ['ctlSlider', 'ctlXY', 'ctlRot', 'ctlPh'].concat(DAY4_ONLY).forEach(id => { $(id).hidden = true; });
     $('ctlProb').hidden = i !== 0; $('ctlAmp').hidden = i !== 1; $('ctlNorm').hidden = i !== 2; $('ctlGates').hidden = i !== 3;
     $('ctlDraws').hidden = !(i === 0 || i === 3);
     $('drawMany').hidden = false;
@@ -1676,6 +1951,73 @@ footer p { margin: 0; }
     $('code').textContent = codeText3();
   }
 
+  function boardD4(i, snap) {
+    const d = d4(), code = $('stateText'), line = $('ketLine');
+    hide($('dial'), !(i === 1 || i === 2)); hide($('viz'), i !== 0);
+    $('flow').hidden = i !== 3;
+    $('kv').hidden = true;
+    code.classList.remove('long');
+    ['ctlSlider', 'ctlGates', 'ctlXY', 'ctlRot', 'ctlPh', 'ctlProb', 'ctlAmp', 'ctlNorm'].forEach(id => { $(id).hidden = true; });
+    $('ctlGuess').hidden = i !== 0; $('ctlShots').hidden = i !== 1; $('ctlMeas').hidden = i !== 2; $('ctlMid').hidden = i !== 3;
+    $('ctlDraws').hidden = !(i === 0 || i === 3);
+    $('drawOne').hidden = i === 0;
+    $('drawMany').hidden = false;
+    $('draws').classList.toggle('single', i === 0);
+
+    let probs = true, sum = '';
+    if (i === 0) {
+      const q = BORN[T.bq], known = bornKnown();
+      $('stateKey').textContent = '상태 [a, b]';
+      code.textContent = q.text;
+      line.hidden = false;
+      line.textContent = ketC(q);
+      probs = known;
+      sum = known ? `a의 크기² + b의 크기² = ${d.p0.toFixed(2)} + ${d.p1.toFixed(2)} = 1` : '확률은 가려 뒀어요. 직접 계산해서 예상을 맞춰 보세요.';
+      $('bornPick').innerHTML = BORN.map((b, k) =>
+        `<button type="button" class="choice" data-born="${k}" aria-pressed="${k === T.bq}">${b.text}${S.f['h' + (k + 1)] ? ' ✓' : ''}</button>`).join('');
+      $('gsIn').value = String(T.guess);
+      $('gsText').textContent = `${big(T.guess)}번`;
+      $('gsDown').disabled = T.guess <= 0; $('gsUp').disabled = T.guess >= 1000;
+      paintViz4(d);
+    } else if (i === 3) {
+      const wait = !S.f.m0;
+      $('stateKey').textContent = '마지막 측정 직전의 상태';
+      code.textContent = T.mid ? '|+> 또는 |->' : '|0>';
+      line.hidden = true;
+      sum = T.mid ? '어느 쪽이든 마지막 측정은 반반이에요.' : '두 갈래가 합쳐져서 0만 남아요.';
+      $('flow').innerHTML = flowHTML(T.mid);
+      $('midBtn').disabled = wait;
+      $('midBtn').setAttribute('aria-pressed', String(T.mid));
+      $('midBtn').textContent = T.mid ? '가운데 측정 빼기' : '가운데에 측정 넣기';
+      $('midRule').textContent = wait ? '먼저 위에서 예측을 골라 주세요.'
+        : (T.mid ? '가운데에서 측정하면 그 순간 0 아니면 1로 정해져요.' : '지금은 맨 끝에서만 측정해요.');
+      $('strip4').innerHTML = '<span class="node start">|0&gt;</span><span class="wire"></span><span class="node">H</span><span class="wire"></span>' +
+        (T.mid ? '<span class="node end">측정</span><span class="wire"></span>' : '') +
+        '<span class="node">H</span><span class="wire"></span><span class="node end">측정</span>';
+    } else {
+      $('stateKey').textContent = '상태 벡터 [a, b]';
+      code.textContent = shortText(d.s);
+      line.hidden = false;
+      line.textContent = ketText(d.s);
+      sum = `a² + b² = ${d.p0.toFixed(3)} + ${d.p1.toFixed(3)} = 1`;
+      $('dialDesc').textContent = `화살표가 상태 ${shortText(d.s)}을 가리킨다.`;
+      setAngle(Math.atan2(d.s[1], d.s[0]), snap);
+      if (i === 2) {
+        $('measBtn').textContent = T.col === null ? '측정하기' : '다시 측정하기';
+        $('prepBtn').disabled = T.col === null;
+        $('measRule').textContent = T.col === null ? '아직 측정하지 않은 큐비트예요.'
+          : (T.rep === 1 ? `이 큐비트를 1번 측정했어요. 결과는 ${T.col}.` : `이 큐비트를 ${T.rep}번 측정했어요. 결과는 모두 ${T.col}.`);
+      }
+    }
+    $('rowP0').hidden = !probs; $('rowP1').hidden = !probs; $('sumLine').hidden = false;
+    if (probs) setProbs(d.p0, d.p1);
+    $('sumLine').textContent = sum;
+    renderResult(i, i >= 2);
+    $('codeTitle').textContent = i === 0 ? '같은 계산을 파이썬으로' : '같은 실험을 Qiskit으로';
+    $('codeLead').textContent = i === 0 ? '지금 화면의 숫자를 파이썬으로 계산하면 이렇게 돼요.' : '지금 화면의 실험을 파이썬 코드로 쓰면 이렇게 돼요.';
+    $('code').textContent = codeText4();
+  }
+
   function render(snap) {
     $('home').hidden = view !== 'home';
     $('play').hidden = view !== 'play';
@@ -1719,7 +2061,8 @@ footer p { margin: 0; }
       if (S.f.quiz) renderClear();
       return;
     }
-    if (day === 1) boardD1(i, snap); else if (day === 2) boardD2(i); else boardD3(i, snap);
+    $('drawOne').hidden = false;
+    if (day === 1) boardD1(i, snap); else if (day === 2) boardD2(i); else if (day === 3) boardD3(i, snap); else boardD4(i, snap);
   }
 
   /* ---------- views: the start screen, and each day at #daily-N ---------- */
@@ -1727,7 +2070,7 @@ footer p { margin: 0; }
     const m = /^#daily-(\d+)$/.exec(location.hash || '');
     const n = m ? Number(m[1]) : 0;
     if (n && dayOpen(n)) return { view: 'play', day: n };
-    return { view: 'home', blocked: n > 1 && n <= BUILT ? n : 0 };
+    return { view: 'home', blocked: n > 1 && n <= DAYS.length ? n : 0 };
   }
   function enterDay(n, force) {
     if (n === day && !force) return;
@@ -1736,7 +2079,7 @@ footer p { margin: 0; }
     T = freshT();
     if (day === 2 && S.stage === 3) T.ph = 90;
   }
-  const blockedHint = n => `Daily ${n} · ${DAYS[n - 1]}. Daily ${n - 1} 클리어 후에 열려요.`;
+  const blockedHint = n => `Daily ${n} · ${DAYS[n - 1]}. ${n <= BUILT ? `Daily ${n - 1} 클리어 후에 열려요.` : '아직 준비 중이에요.'}`;
   function setView(v, n) {
     view = v;
     if (v === 'play') enterDay(n || day);
@@ -1764,7 +2107,7 @@ footer p { margin: 0; }
     if (!b) return;
     const n = Number(b.dataset.day);
     if (dayOpen(n)) { setView('play', n); return; }
-    $('dayHint').textContent = n <= BUILT ? blockedHint(n) : `Daily ${n} · ${DAYS[n - 1]}. 아직 준비 중이에요.`;
+    $('dayHint').textContent = blockedHint(n);
   });
 
   /* ---------- events ---------- */
@@ -1799,6 +2142,23 @@ footer p { margin: 0; }
   $('phDown').addEventListener('click', () => setPh(clamp(T.ph - 5, 0, 360)));
   $('phUp').addEventListener('click', () => setPh(clamp(T.ph + 5, 0, 360)));
 
+  $('bornPick').addEventListener('click', e => {
+    const b = e.target.closest('[data-born]');
+    if (!b) return;
+    T.bq = Number(b.dataset.born);
+    T.guess = 500;
+    changed();
+    render(true);
+    const again = $('bornPick').querySelector(`[data-born="${T.bq}"]`);
+    if (again) again.focus({ preventScroll: true });
+  });
+  $('gsIn').addEventListener('input', e => setGuess(Number(e.target.value)));
+  $('gsDown').addEventListener('click', () => setGuess(clamp(T.guess - 10, 0, 1000)));
+  $('gsUp').addEventListener('click', () => setGuess(clamp(T.guess + 10, 0, 1000)));
+  $('ctlShots').addEventListener('click', e => { const b = e.target.closest('[data-shots]'); if (b) drawShots(Number(b.dataset.shots)); });
+  $('measBtn').addEventListener('click', measureOnce);
+  $('prepBtn').addEventListener('click', prepare);
+  $('midBtn').addEventListener('click', toggleMid);
   $('pbIn').addEventListener('input', e => setProb(Number(e.target.value)));
   $('pbDown').addEventListener('click', () => setProb(clamp(T.p - 1, 0, 100)));
   $('pbUp').addEventListener('click', () => setProb(clamp(T.p + 1, 0, 100)));
@@ -1872,13 +2232,15 @@ footer p { margin: 0; }
     if (data.T && keptDay === day) {
       T.deg = Number(data.T.deg) || 0;
       T.circuit = (data.T.circuit || []).filter(g => GATES[g]);
-      ['x', 'y', 'rot', 'ph', 'p', 'a10', 'sgn', 'nx', 'ny'].forEach(k => { if (typeof data.T[k] === 'number') T[k] = data.T[k]; });
+      ['x', 'y', 'rot', 'ph', 'p', 'a10', 'sgn', 'nx', 'ny', 'bq', 'guess'].forEach(k => { if (typeof data.T[k] === 'number') T[k] = data.T[k]; });
+      T.bq = clamp(Math.round(T.bq) || 0, 0, BORN.length - 1);
+      T.guess = clamp(Math.round((T.guess || 0) / 10) * 10, 0, 1000);
     }
     if (r.blocked) $('dayHint').textContent = blockedHint(r.blocked);
     render(true);
   }
   const hot = window.claude && window.claude.hot;
-  if (hot && hot.snapshot) hot.snapshot(() => ({ P, day, T: { deg: T.deg, circuit: T.circuit, x: T.x, y: T.y, rot: T.rot, ph: T.ph, p: T.p, a10: T.a10, sgn: T.sgn, nx: T.nx, ny: T.ny } }));
+  if (hot && hot.snapshot) hot.snapshot(() => ({ P, day, T: { deg: T.deg, circuit: T.circuit, x: T.x, y: T.y, rot: T.rot, ph: T.ph, p: T.p, a10: T.a10, sgn: T.sgn, nx: T.nx, ny: T.ny, bq: T.bq, guess: T.guess } }));
   if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();
 </script>
