@@ -215,6 +215,41 @@ button { font: inherit; color: inherit; }
 .flow .fb small { font-size: 12.5px; color: var(--muted); }
 .flow code { font-size: 14px; }
 
+/* Daily 5: a matrix is a bracketed grid. Teal underlines the row that makes the amplitude of 0, rose the row for 1 */
+.mboard { display: grid; gap: 10px; }
+.mxs { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center; gap: 10px 12px; }
+.mx { display: inline-grid; justify-items: center; gap: 5px; }
+.mx .mn { font-size: 13px; font-weight: 600; }
+.mg {
+  position: relative; display: grid; grid-template-columns: repeat(2, auto); gap: 6px 14px; padding: 8px 13px;
+  font-family: var(--font-mono); font-size: 17px; line-height: 1.25; font-variant-numeric: tabular-nums;
+}
+.mg.v { grid-template-columns: auto; }
+.mg::before, .mg::after { content: ""; position: absolute; top: 0; bottom: 0; width: 7px; border: 2px solid var(--ink); }
+.mg::before { left: 0; border-right: 0; border-radius: 4px 0 0 4px; }
+.mg::after { right: 0; border-left: 0; border-radius: 0 4px 4px 0; }
+.mc { text-align: right; padding: 0 3px 1px; border-bottom: 3px solid transparent; }
+.mc.z { border-bottom-color: var(--zero); }
+.mc.o { border-bottom-color: var(--one); }
+.mc.hot { background: var(--accent); color: var(--accent-ink); border-radius: 5px; }
+.mgrp { display: inline-flex; align-items: flex-end; gap: 12px; }
+.mop { align-self: flex-end; margin-bottom: 26px; font-family: var(--font-mono); font-size: 20px; line-height: 1; color: var(--muted); }
+.mform { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.mform .k { font-size: 14px; color: var(--muted); }
+.mform code { font-size: clamp(17px, 5vw, 21px); font-weight: 500; overflow-wrap: anywhere; }
+.mcap { margin: 0; font-size: 14.5px; text-align: center; }
+.mcap.sub { font-size: 13.5px; color: var(--muted); }
+.calc { display: grid; gap: 8px; }
+.cl { margin: 0; display: grid; gap: 1px; padding-left: 10px; border-left: 4px solid var(--line); }
+.cl.z { border-left-color: var(--zero); }
+.cl.o { border-left-color: var(--one); }
+.cl .ck { font-size: 13px; color: var(--muted); }
+.cl code { font-size: 14.5px; }
+.nb { white-space: nowrap; }
+@media (max-width: 380px) {
+  .mg { font-size: 15.5px; gap: 6px 12px; padding: 8px 12px; }
+}
+
 .result { display: grid; gap: 12px; }
 .tape { display: flex; flex-wrap: wrap; gap: 6px; min-height: 36px; align-items: center; }
 .tape .empty { color: var(--muted); font-size: 14.5px; }
@@ -333,7 +368,7 @@ footer p { margin: 0; }
     </div>
     <div class="journey panel">
       <h2>Daily 1부터 Daily 30까지</h2>
-      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 5부터는 준비되는 대로 추가돼요.</p>
+      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 6부터는 준비되는 대로 추가돼요.</p>
       <div id="weeks"></div>
     </div>
   </section>
@@ -376,8 +411,9 @@ footer p { margin: 0; }
         <g id="vizBody"></g>
       </svg>
       <div class="flow" id="flow" role="group" aria-label="큐비트가 단계마다 놓이는 상태" hidden></div>
+      <div class="mboard" id="mboard" role="group" aria-label="행렬 계산" hidden></div>
       <div class="readout" aria-live="polite">
-        <div class="state"><span class="k" id="stateKey">상태 [a, b]</span><code id="stateText">[1.000, 0.000]</code></div>
+        <div class="state" id="stateRow"><span class="k" id="stateKey">상태 [a, b]</span><code id="stateText">[1.000, 0.000]</code></div>
         <p class="ket" id="ketLine" hidden></p>
         <div class="kv" id="kv" hidden>
           <div><span class="k">가로 (실수부)</span><span class="v" id="kvRe"></span></div>
@@ -530,6 +566,48 @@ footer p { margin: 0; }
         </div>
         <p class="rule" id="midRule" aria-live="polite"></p>
       </div>
+      <div class="ctl" id="ctlMul" hidden>
+        <span class="lbl" id="mgLabel">게이트 고르기</span>
+        <div class="choices" role="group" aria-labelledby="mgLabel">
+          <button type="button" class="choice" data-mg="X" aria-pressed="false">X</button>
+          <button type="button" class="choice" data-mg="Z" aria-pressed="false">Z</button>
+          <button type="button" class="choice" data-mg="H" aria-pressed="false">H</button>
+        </div>
+        <span class="lbl" id="msLabel">상태 고르기</span>
+        <div class="choices" role="group" aria-labelledby="msLabel">
+          <button type="button" class="choice" data-ms="0" aria-pressed="false">|0&gt;</button>
+          <button type="button" class="choice" data-ms="1" aria-pressed="false">|1&gt;</button>
+          <button type="button" class="choice" data-ms="2" aria-pressed="false">|+&gt;</button>
+          <button type="button" class="choice" data-ms="3" aria-pressed="false">|-&gt;</button>
+        </div>
+        <p class="rule" id="mulRule" aria-live="polite"></p>
+      </div>
+      <div class="ctl" id="ctlDag" hidden>
+        <span class="lbl" id="dmLabel">행렬 고르기</span>
+        <div class="choices" role="group" aria-labelledby="dmLabel">
+          <button type="button" class="choice" data-dm="0" aria-pressed="false">M (연습용)</button>
+          <button type="button" class="choice" data-dm="1" aria-pressed="false">S</button>
+          <button type="button" class="choice" data-dm="2" aria-pressed="false">H</button>
+        </div>
+        <span class="lbl" id="dopLabel">켤레 전치 만들기</span>
+        <div class="choices" role="group" aria-labelledby="dopLabel">
+          <button type="button" class="choice" id="trBtn" data-dop="tr" aria-pressed="false">전치: 행과 열 바꾸기</button>
+          <button type="button" class="choice" id="cjBtn" data-dop="cj" aria-pressed="false">켤레: j의 부호 뒤집기</button>
+        </div>
+        <p class="rule" id="dagRule" aria-live="polite"></p>
+      </div>
+      <div class="ctl" id="ctlUni" hidden>
+        <span class="lbl" id="umLabel">검사할 행렬 고르기</span>
+        <div class="choices" role="group" aria-labelledby="umLabel">
+          <button type="button" class="choice" data-um="0" aria-pressed="false">X</button>
+          <button type="button" class="choice" data-um="1" aria-pressed="false">H</button>
+          <button type="button" class="choice" data-um="2" aria-pressed="false">S</button>
+          <button type="button" class="choice" data-um="3" aria-pressed="false">A</button>
+          <button type="button" class="choice" data-um="4" aria-pressed="false">B</button>
+        </div>
+        <p class="rule" id="uniRule" aria-live="polite"></p>
+        <button type="button" class="btn primary" id="uniBtn">U†U 계산하기</button>
+      </div>
       <div class="ctl" id="ctlDraws">
         <div class="draws" id="draws">
           <button type="button" class="btn" id="drawOne">1번 뽑기</button>
@@ -576,7 +654,7 @@ footer p { margin: 0; }
 
   </main>
 
-  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 4까지 만들어져 있어요.</p></footer>
+  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 5까지 만들어져 있어요.</p></footer>
 </div>
 
 <script>
@@ -586,8 +664,8 @@ footer p { margin: 0; }
   const hide = (el, off) => { if (off) el.setAttribute('hidden', ''); else el.removeAttribute('hidden'); };
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const SQ = Math.SQRT1_2, RAD = Math.PI / 180;
-  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1', 3: 'qubit-quest-d3-v1', 4: 'qubit-quest-d4-v1' };
-  const BUILT = 4;
+  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1', 3: 'qubit-quest-d3-v1', 4: 'qubit-quest-d4-v1', 5: 'qubit-quest-d5-v1' };
+  const BUILT = 5;
   const CX = 150, CY = 128, R = 88;
 
   const tidy = v => {
@@ -808,6 +886,84 @@ footer p { margin: 0; }
     j1: false, j2: false, j0: false, j9: false, m0: '', mPeek: false, mSeen: false, m1: false, m2: false,
     quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
 
+  /* ---------- Daily 5: 행렬과 유니터리. A matrix is two rows of two complex numbers ---------- */
+  const re = x => [x, 0];
+  const MX = {
+    I: [[re(1), re(0)], [re(0), re(1)]],
+    X: [[re(0), re(1)], [re(1), re(0)]],
+    Z: [[re(1), re(0)], [re(0), re(-1)]],
+    H: [[re(SQ), re(SQ)], [re(SQ), re(-SQ)]],
+    S: [[re(1), re(0)], [re(0), [0, 1]]],
+    M: [[re(1), [0, 2]], [re(3), re(4)]],
+    A: [[re(2), re(0)], [re(0), re(1)]],
+    B: [[re(1), re(1)], [re(0), re(1)]]
+  };
+  const DAGS = ['M', 'S', 'H'], UNIS = ['X', 'H', 'S', 'A', 'B'];
+  const cadd = (p, q) => [p[0] + q[0], p[1] + q[1]];
+  const mmul = (a, b) => [0, 1].map(r => [0, 1].map(k => cadd(cmul(a[r][0], b[0][k]), cmul(a[r][1], b[1][k]))));
+  const mvec = (a, v) => [0, 1].map(r => cadd(cmul(a[r][0], v[0]), cmul(a[r][1], v[1])));
+  const mT = a => [[a[0][0], a[1][0]], [a[0][1], a[1][1]]];
+  const mConj = a => a.map(row => row.map(z => [z[0], z[1] === 0 ? 0 : -z[1]]));
+  const mDag = a => mConj(mT(a));
+  const cnear = (p, q) => Math.abs(p[0] - q[0]) < 1e-9 && Math.abs(p[1] - q[1]) < 1e-9;
+  const mSame = (a, b) => a.every((row, r) => row.every((z, k) => cnear(z, b[r][k])));
+  const mName = a => {
+    for (const k of ['I', 'X', 'Z', 'H']) {
+      if (mSame(a, MX[k])) return k;
+      if (mSame(a, MX[k].map(row => row.map(z => [-z[0], -z[1]])))) return '-' + k;
+    }
+    return '';
+  };
+
+  const STAGES5 = [
+    { name: '게이트는 행렬이다',
+      intro: '지금까지 X, Z, H를 버튼으로만 눌렀어요. 게이트의 정체는 숫자 네 개를 네모로 늘어놓은 행렬이에요. 게이트를 건다는 건 행렬을 상태 벡터에 곱한다는 뜻이에요. 행렬의 줄마다 상태의 두 숫자와 짝지어 곱한 뒤 더하면 돼요. 게이트와 상태를 골라 계산을 따라가 보세요.',
+      goals: [
+        { text: '<code>X</code>를 <code>|0&gt;</code>에 곱해 <code>|1&gt;</code> 만들기', done: f => f.v1 },
+        { text: '<code>H</code>를 <code>|0&gt;</code>에 곱해 <code>|+&gt;</code> 만들기', done: f => f.v2 },
+        { text: '<code>Z</code>를 <code>|+&gt;</code>에 곱해 <code>|-&gt;</code> 만들기', done: f => f.v3 }] },
+    { name: '연달아 걸면 곱한다',
+      intro: '게이트를 여러 개 걸면 행렬을 그만큼 곱하게 돼요. 그런데 행렬끼리는 미리 곱해서 행렬 하나로 만들 수 있어요. 게이트를 차례로 넣으면서 전체 행렬이 어떻게 되는지 보세요. 식에서는 나중에 건 게이트를 왼쪽에 적어요.',
+      goals: [
+        { text: '<code>H</code>, <code>H</code> 순서로 걸어 전체 행렬을 <code>I</code>로 만들기', done: f => f.w1 },
+        { text: '<code>X</code>, <code>H</code> 순서와 <code>H</code>, <code>X</code> 순서를 둘 다 걸어 보기', done: f => f.wa && f.wb },
+        { text: '<code>H</code>, <code>Z</code>, <code>H</code> 순서로 걸어 <code>X</code>와 같은 행렬 만들기', done: f => f.w3 }] },
+    { name: '켤레 전치',
+      intro: '행렬에 †(대거)를 붙이면 켤레 전치라는 뜻이에요. 두 가지를 하면 돼요. 행과 열을 바꾸고(전치), 숫자마다 j의 부호를 뒤집어요(켤레). 실수는 켤레를 해도 그대로예요. 버튼 두 개를 눌러 직접 만들어 보세요.',
+      goals: [
+        { text: '연습용 행렬 <code>M</code>의 켤레 전치 만들기', done: f => f.t1 },
+        { text: '<code>S</code>의 켤레 전치 만들기', done: f => f.t2 },
+        { text: '<code>H</code>의 켤레 전치 만들기', done: f => f.t3 }] },
+    { name: '유니터리',
+      intro: '아무 행렬이나 게이트가 되는 건 아니에요. 게이트가 되려면 <code>U†U = I</code>여야 해요. 이런 행렬을 유니터리라고 해요. 행렬을 고르고 직접 검사해 보세요. 그 행렬을 상태 <code>[0.6, 0.8]</code>에 곱하면 확률이 어떻게 되는지도 같이 나와요.',
+      predict: { label: 'A = [[2, 0], [0, 1]]은 첫째 진폭을 2배로 만드는 행렬이에요. 게이트가 될 수 있을까요?', key: 'u0', lock: f => f.uSeen,
+        opts: [['yes', '될 수 있다'], ['no', '될 수 없다']] },
+      goals: [
+        { text: '결과 예측하기', done: f => !!f.u0 },
+        { text: '<code>X</code>, <code>H</code>, <code>S</code> 중 하나가 유니터리인지 검사하기', done: f => f.u1 },
+        { text: '<code>A</code>가 유니터리인지 검사하기', done: f => f.u2 }] },
+    { name: 'Daily 5 보스',
+      intro: '배운 내용을 확인하는 문제 다섯 개예요. 모두 맞히면 Daily 5 클리어예요.',
+      goals: [{ text: '문제 5개 모두 맞히기', done: f => f.quiz }] }
+  ];
+
+  const QUIZ5 = [
+    { q: '<code>X = [[0, 1], [1, 0]]</code>을 <code>|0&gt; = [1, 0]</code>에 곱하면?', opts: ['[1, 0]', '[0, 1]', '[1, 1]', '[0, 0]'], a: 1,
+      why: '첫째 줄은 0 × 1 + 1 × 0 = 0, 둘째 줄은 1 × 1 + 0 × 0 = 1이에요. 그래서 [0, 1], 즉 |1>이에요.' },
+    { q: '회로에서 X를 먼저, H를 나중에 걸었어요. 전체 행렬은?', opts: ['H · X', 'X · H', '어느 쪽으로 써도 같은 행렬이다'], a: 0,
+      why: '식에서는 나중에 건 게이트가 왼쪽에 와요. 상태 벡터에 가까운 오른쪽 행렬부터 곱해지기 때문이에요.' },
+    { q: '<code>[[1, 0], [0, 1j]]</code>의 켤레 전치는?', opts: ['[[1, 0], [0, 1j]]', '[[-1, 0], [0, -1j]]', '[[1, 0], [0, -1j]]'], a: 2,
+      why: '대각선의 숫자는 전치해도 제자리예요. 켤레로 1j만 -1j가 되고, 실수 1은 그대로예요.' },
+    { q: '행렬 U가 유니터리라는 것은?', opts: ['U의 숫자가 모두 실수다', 'U†U = I 이다', 'U를 두 번 곱하면 다시 U가 된다'], a: 1,
+      why: '유니터리의 정의예요. U를 건 뒤 U†를 걸면 아무것도 안 한 것과 같아요.' },
+    { q: '게이트가 유니터리여야 하는 이유는?', opts: ['무엇을 걸어도 확률의 합이 1로 유지되어야 해서', '계산이 빨라져서', '행렬의 숫자가 0과 1뿐이어야 해서'], a: 0,
+      why: '유니터리 행렬은 상태 벡터의 길이를 바꾸지 않아요. 그래서 확률의 합이 항상 1로 남아요.' }
+  ];
+
+  const fresh5 = () => ({ v1: false, v2: false, v3: false, w1: false, wa: false, wb: false, w3: false,
+    t1: false, t2: false, t3: false, u0: '', uSeen: false, u1: false, u2: false,
+    quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
+
   const LEVELS = {
     1: { title: '큐비트와 측정', stages: STAGES1, quiz: QUIZ1, fresh: fresh1, touched: f => f.s0 > 0,
       learned: [
@@ -840,7 +996,15 @@ footer p { margin: 0; }
         '측정하면 상태가 바뀐다. 0이 나오면 |0>, 1이 나오면 |1>이 되고, 다시 측정하면 같은 값이 나온다.',
         '중간에 측정하면 간섭이 사라진다. H, H는 항상 0이지만 H, 측정, H는 반반이다.',
         '그래서 양자 회로에서는 보통 측정을 맨 끝에 둔다.'],
-      next: 'Daily 5는 행렬과 유니터리예요. 아직 준비 중이에요.' }
+      next: 'Daily 5가 열렸어요. 행렬과 유니터리예요.' },
+    5: { title: '행렬과 유니터리', stages: STAGES5, quiz: QUIZ5, fresh: fresh5, touched: f => f.v1 || f.v2 || f.v3 || f.w1,
+      learned: [
+        '게이트는 행렬이다. 게이트를 건다는 것은 행렬을 상태 벡터에 곱한다는 뜻이다.',
+        '게이트를 연달아 거는 것은 행렬끼리 곱하는 것과 같다. 식에서는 나중에 건 게이트가 왼쪽에 온다.',
+        '행렬 곱은 순서를 바꾸면 결과가 달라질 수 있다.',
+        '켤레 전치(†)는 행과 열을 바꾸고 j의 부호를 뒤집는 것이다.',
+        'U†U = I인 행렬이 유니터리다. 유니터리여야 확률의 합이 1로 유지되고, U†로 되돌릴 수 있다.'],
+      next: 'Daily 6은 단일 큐비트 게이트 정리예요. 아직 준비 중이에요.' }
   };
 
   const WEEKS = ['1주 · 한 큐비트', '2주 · 여러 큐비트와 얽힘', '3주 · 회로와 프로토콜', '4주 · 첫 알고리즘', '5주 · 다음 알고리즘'];
@@ -858,11 +1022,12 @@ footer p { margin: 0; }
   const LOCK = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" rx="1.2" fill="currentColor"></rect><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>';
 
   /* ---------- progress: one record per day, plus what is on screen right now ---------- */
-  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() }, 3: { stage: 0, f: fresh3() }, 4: { stage: 0, f: fresh4() } };
+  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() }, 3: { stage: 0, f: fresh3() }, 4: { stage: 0, f: fresh4() }, 5: { stage: 0, f: fresh5() } };
   let day = 1, S = P[1], LV = LEVELS[1];
   const freshT = () => ({ deg: 0, circuit: [], tape: [], counts: null, note: '', rule: '',
     wrong: LV.quiz.map(() => []), x: 2, y: 1, rot: 0, ph: 0, p: 50, a10: 10, sgn: 1, nx: 2, ny: 1, normed: false,
-    bq: 0, guess: 500, runs: {}, col: null, rep: 0, mid: false });
+    bq: 0, guess: 500, runs: {}, col: null, rep: 0, mid: false,
+    gt: 'Z', st: 0, dm: 0, tr: false, cj: false, um: 0, uc: false });
   let T = freshT();
   let view = 'home';
 
@@ -980,7 +1145,43 @@ footer p { margin: 0; }
   const bornKnown = () => !!T.counts || !!S.f['h' + (T.bq + 1)];
   const big = v => v.toLocaleString('en-US');
   const ketC = q => { const b = cTight(q.b), neg = b[0] === '-'; return `${cTight(q.a)}|0> ${neg ? '-' : '+'} ${neg ? b.slice(1) : b}|1>`; };
-  const p1Now = () => (day === 1 ? stateNow()[1] ** 2 : day === 2 ? d2().p1 : day === 3 ? d3().p1 : d4().p1);
+
+  /* ---------- Daily 5: the matrices and vectors on screen at each stage ---------- */
+  function d5() {
+    const i = S.stage;
+    if (i === 0) {
+      const g = MX[T.gt], v = NAMED[T.st][0], s = mvec(g, v.map(re)).map(z => tidy(z[0]));
+      return { g, v, s, p0: s[0] ** 2, p1: s[1] ** 2 };
+    }
+    if (i === 1) {
+      const s = runCircuit(T.circuit).pop();
+      return { s, tot: T.circuit.reduce((acc, k) => mmul(MX[k], acc), MX.I), p0: s[0] ** 2, p1: s[1] ** 2 };
+    }
+    if (i === 2) {
+      const key = DAGS[T.dm], from = MX[key];
+      let now = from;
+      if (T.tr) now = mT(now);
+      if (T.cj) now = mConj(now);
+      return { key, from, now, same: mSame(now, from) };
+    }
+    const key = UNIS[T.um], u = MX[key], dag = mDag(u), prod = mmul(dag, u), s = mvec(u, [re(0.6), re(0.8)]);
+    return { key, u, dag, prod, ok: mSame(prod, MX.I), s, p0: s[0][0] ** 2 + s[0][1] ** 2, p1: s[1][0] ** 2 + s[1][1] ** 2 };
+  }
+  const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const mText = a => `[[${cTight(a[0][0])}, ${cTight(a[0][1])}], [${cTight(a[1][0])}, ${cTight(a[1][1])}]]`;
+  function mxHTML(a, o) {
+    o = o || {};
+    const cell = (r, k) => `<span class="mc${o.rows ? (r ? ' o' : ' z') : ''}${o.hot && o.hot(r, k) ? ' hot' : ''}">${cTight(a[r][k])}</span>`;
+    const say = `${o.say || o.name || '행렬'}: 첫째 줄 ${cTight(a[0][0])}, ${cTight(a[0][1])}. 둘째 줄 ${cTight(a[1][0])}, ${cTight(a[1][1])}`;
+    return `<span class="mx"${o.id ? ` id="${o.id}"` : ''} role="img" aria-label="${esc(say)}">${o.name ? `<span class="mn">${esc(o.name)}</span>` : ''}` +
+      `<span class="mg">${cell(0, 0)}${cell(0, 1)}${cell(1, 0)}${cell(1, 1)}</span></span>`;
+  }
+  function vecHTML(v, o) {
+    o = o || {};
+    return `<span class="mx" role="img" aria-label="${esc(`${o.name || '벡터'}: ${cTight(v[0])}, ${cTight(v[1])}`)}">${o.name ? `<span class="mn">${esc(o.name)}</span>` : ''}` +
+      `<span class="mg v"><span class="mc">${cTight(v[0])}</span><span class="mc">${cTight(v[1])}</span></span></span>`;
+  }
+  const p1Now = () => (day === 1 ? stateNow()[1] ** 2 : day === 2 ? d2().p1 : day === 3 ? d3().p1 : day === 4 ? d4().p1 : 0);
 
   /* ---------- dial (Daily 1) ---------- */
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1373,8 +1574,9 @@ footer p { margin: 0; }
     if (day === 1 && S.stage === 3 && !S.f.s3predict) { T.rule = '먼저 위에서 예측을 골라 주세요.'; render(); return; }
     if (T.circuit.length >= 6) { T.rule = '게이트는 6개까지 걸 수 있어요. 되돌리기나 지우기를 눌러 주세요.'; render(); return; }
     T.circuit.push(g);
-    T.rule = `${GATES[g].rule}. ${GATES[g].say}`;
+    T.rule = day === 5 ? `${g} = ${mText(MX[g])}` : `${GATES[g].rule}. ${GATES[g].say}`;
     changed();
+    if (day === 5) seqNote();
     render();
   }
   function go(i) {
@@ -1516,6 +1718,74 @@ footer p { margin: 0; }
     changed();
     render(true);
   }
+  /* ---------- Daily 5 actions ---------- */
+  function pickMul() {
+    const f = S.f, key = T.gt + T.st;
+    T.note = '';
+    if (key === 'X0') {
+      f.v1 = true;
+      T.note = '<p>X의 첫째 줄 <code>[0, 1]</code>은 상태의 둘째 숫자만 가져오고, 둘째 줄 <code>[1, 0]</code>은 첫째 숫자만 가져와요. 그래서 두 숫자가 자리를 바꿔요.</p>';
+    } else if (key === 'H0') {
+      f.v2 = true;
+      T.note = '<p>H의 두 줄이 모두 상태의 첫째 숫자 1을 0.707배로 가져왔어요. 그래서 반반인 <code>|+&gt;</code>가 돼요.</p>';
+    } else if (key === 'Z2') {
+      f.v3 = true;
+      T.note = '<p>Z의 둘째 줄에 있는 -1이 둘째 진폭의 부호를 뒤집었어요. 확률은 그대로 반반이지만 상태는 <code>|-&gt;</code>로 바뀌었어요.</p>';
+    }
+    render(true);
+  }
+  function seqNote() {
+    const f = S.f, q = T.circuit.join('');
+    if (q === 'HH') {
+      f.w1 = true;
+      T.note = '<p>전체 행렬이 I가 됐어요. I는 곱해도 아무것도 바꾸지 않는 행렬이에요.</p><p>H를 두 번 걸면 원래대로 돌아와요. Daily 1에서 H를 두 번 걸었을 때 0만 나온 이유예요.</p>';
+    } else if (q === 'XH' || q === 'HX') {
+      const first = q[0], last = q[1];
+      if (q === 'XH') f.wa = true; else f.wb = true;
+      T.note = f.wa && f.wb
+        ? '<p>순서만 바꿨는데 다른 행렬이 됐어요. X 먼저면 <code>|0&gt;</code>이 <code>|-&gt;</code>가 되고, H 먼저면 <code>|+&gt;</code>가 돼요.</p><p>행렬 곱은 순서가 중요해요. 숫자끼리의 곱셈과 다른 점이에요.</p>'
+        : `<p>${first} 먼저, ${last} 나중이에요. 전체 행렬은 <code>${last} · ${first}</code>예요. 식에서는 나중에 건 게이트가 왼쪽에 와요.</p><p>지우기를 누르고 반대 순서인 ${last}, ${first}도 넣어 보세요.</p>`;
+    } else if (q === 'HZH') {
+      f.w3 = true;
+      T.note = '<p>전체 행렬이 X와 똑같아졌어요. H, Z, H를 차례로 거는 것과 X 하나를 거는 것은 같은 일이에요.</p><p>게이트를 몇 개 걸든 행렬 하나로 줄일 수 있어요.</p>';
+    }
+  }
+  function dagNote() {
+    const key = DAGS[T.dm];
+    T.note = '';
+    if (!(T.tr && T.cj)) return;
+    S.f['t' + (T.dm + 1)] = true;
+    T.note = key === 'M'
+      ? '<p>M†가 됐어요. 전치로 <code>2j</code>와 <code>3</code>이 자리를 바꿨고, 켤레로 <code>2j</code>가 <code>-2j</code>가 됐어요.</p><p>두 가지는 어느 쪽을 먼저 해도 결과가 같아요.</p>'
+      : key === 'S'
+        ? '<p>S†가 됐어요. S는 대각선에만 숫자가 있어서 전치로는 바뀌지 않고, 켤레로 <code>1j</code>가 <code>-1j</code>가 됐어요.</p><p>S가 둘째 진폭을 90° 돌린다면 S†는 반대쪽으로 90° 돌려요. S를 되돌리는 행렬이에요.</p>'
+        : '<p>하나도 변하지 않았어요. H† = H예요.</p><p>H는 숫자가 모두 실수이고 대각선을 기준으로 대칭이라서 그래요. X와 Z도 마찬가지예요.</p>';
+  }
+  function checkUni() {
+    const f = S.f, d = d5();
+    if (d.key === 'A' && !f.u0) { T.rule = '먼저 위에서 예측을 골라 주세요.'; render(); return; }
+    T.uc = true;
+    T.rule = '';
+    if (d.ok) {
+      f.u1 = true;
+      T.note = `<p>U†U가 I와 같아요. ${d.key}는 유니터리예요.</p>
+        <p><code>[0.6, 0.8]</code>에 곱해도 확률의 합이 1 그대로예요. 유니터리 행렬은 상태 벡터의 길이를 바꾸지 않아요.</p>
+        <p>U†U = I는 U를 건 뒤 U†를 걸면 원래대로 돌아온다는 뜻이기도 해요. 그래서 게이트는 언제나 되돌릴 수 있어요.</p>`;
+    } else {
+      let verdict = '';
+      if (d.key === 'A') {
+        if (!f.uSeen) {
+          f.uSeen = true;
+          verdict = f.u0 === 'no' ? '예측이 맞았어요. ' : `예측은 "${predText(LV.stages[3], f.u0)}"였죠. 실제로는 될 수 없어요. `;
+        }
+        f.u2 = true;
+      }
+      T.note = `<p>${verdict}계산해 보니 ${d.key}†${d.key} = <code class="nb">${mText(d.prod)}</code>. I가 아니에요. 그래서 ${d.key}는 유니터리가 아니에요.</p>
+        <p><code class="nb">[0.6, 0.8]</code>에 곱하면 <code class="nb">${arr(d.s)}</code>로 바뀌고 확률의 합이 ${num(d.p0 + d.p1, 2)}이 돼요. 합이 1이 아니면 상태가 아니에요. 그래서 ${d.key}는 게이트가 될 수 없어요.</p>`;
+    }
+    render();
+  }
+
   function normalize() {
     const x = T.nx, y = T.ny, sq = x * x + y * y, f = S.f;
     if (sq === 0) {
@@ -1713,7 +1983,47 @@ footer p { margin: 0; }
     lines.push('qc.h(0)', 'qc.measure(0, 0)', '', 'counts = AerSimulator().run(qc, shots=1000).result().get_counts()', 'print(counts)');
     return lines.join('\n');
   }
-  const codeNow = () => (day === 1 ? codeText() : day === 2 ? codeText2() : day === 3 ? codeText3() : codeText4());
+  function codeText5() {
+    const i = S.stage, root = 's = 1 / np.sqrt(2)';
+    const DEF = { X: 'np.array([[0, 1], [1, 0]])', Z: 'np.array([[1, 0], [0, -1]])', H: 's * np.array([[1, 1], [1, -1]])',
+      S: 'np.array([[1, 0], [0, 1j]])', M: 'np.array([[1, 2j], [3, 4]])', A: 'np.array([[2, 0], [0, 1]])', B: 'np.array([[1, 1], [0, 1]])' };
+    if (i === 0) {
+      const vec = ['np.array([1, 0])', 'np.array([0, 1])', 's * np.array([1, 1])', 's * np.array([1, -1])'][T.st];
+      const lines = ['import numpy as np', ''];
+      if (T.gt === 'H' || T.st >= 2) lines.push(root);
+      lines.push(`${T.gt} = ${DEF[T.gt]}`, `state = ${vec}`, '# 게이트 걸기 = 행렬 @ 상태', `after = ${T.gt} @ state`, 'print(np.round(after, 3))', `# 결과는 ${shortText(d5().s)}`);
+      return lines.join('\n');
+    }
+    if (i === 1) {
+      const seq = T.circuit, used = ['X', 'Z', 'H'].filter(g => seq.includes(g));
+      const lines = ['import numpy as np', 'from qiskit import QuantumCircuit', 'from qiskit.quantum_info import Operator', ''];
+      if (used.includes('H')) lines.push(root);
+      used.forEach(g => lines.push(`${g} = ${DEF[g]}`));
+      lines.push(seq.length > 3 ? '# 식에는 건 순서의 거꾸로 적는다'
+        : seq.length > 1 ? `# 건 순서: ${seq.join(', ')}. 식에는 거꾸로`
+          : seq.length ? '# 게이트가 하나면 그 행렬 그대로' : '# 게이트가 없으면 단위행렬 I',
+      `total = ${seq.length ? seq.slice().reverse().join(' @ ') : 'np.eye(2)'}`, 'print(np.round(total, 3))', '',
+      '# Qiskit이 구한 행렬과 비교', 'qc = QuantumCircuit(1)');
+      seq.forEach(g => lines.push(GATES[g].code));
+      lines.push('op = Operator(qc).data', 'print(np.allclose(total, op))');
+      return lines.join('\n');
+    }
+    if (i === 2) {
+      const k = DAGS[T.dm], w = x => (k === 'H' ? `np.round(${x}, 3)` : x);
+      const lines = ['import numpy as np', ''];
+      if (k === 'H') lines.push(root);
+      lines.push(`${k} = ${DEF[k]}`, '# 전치: 행과 열을 바꾼다', `print(${w(k + '.T')})`, '# 켤레: j의 부호를 뒤집는다', `print(${w(k + '.conj()')})`,
+        '# 켤레 전치: 둘 다 한다', `print(${w(k + '.conj().T')})`);
+      return lines.join('\n');
+    }
+    const k = UNIS[T.um];
+    const lines = ['import numpy as np', 'from qiskit.quantum_info import Operator', ''];
+    if (k === 'H') lines.push(root);
+    lines.push(`# U = ${k}`, `U = ${DEF[k]}`, '# 유니터리 검사: U†U 가 I 인가', 'check = U.conj().T @ U', 'print(np.round(check, 3))', 'print(np.allclose(check, np.eye(2)))',
+      '# Qiskit으로도 검사한다', 'print(Operator(U).is_unitary())', '# [0.6, 0.8]에 곱한 뒤 확률의 합', 'after = U @ np.array([0.6, 0.8])', 'total = np.sum(np.abs(after) ** 2)', 'print(round(float(total), 3))');
+    return lines.join('\n');
+  }
+  const codeNow = () => (day === 1 ? codeText() : day === 2 ? codeText2() : day === 3 ? codeText3() : day === 4 ? codeText4() : codeText5());
 
   function renderHome() {
     const n = focusDay(), lv = LEVELS[n], f = P[n].f;
@@ -1781,7 +2091,8 @@ footer p { margin: 0; }
 
   const DAY4_ONLY = ['ctlGuess', 'ctlShots', 'ctlMeas', 'ctlMid', 'flow'];
   const DAY3_ONLY = ['ctlProb', 'ctlAmp', 'ctlNorm', 'ketLine'].concat(DAY4_ONLY);
-  function gatesUI(zHidden, zLocked, hint) {
+  function gatesUI(zHidden, zLocked, hint, o) {
+    o = o || {};
     $('gateZ').hidden = zHidden;
     $('gateZ').disabled = zLocked;
     $('gateZ').setAttribute('aria-label', zLocked ? 'Z 게이트 (H 두 번 실험 뒤에 열려요)' : 'Z 게이트 걸기');
@@ -1789,9 +2100,9 @@ footer p { margin: 0; }
     $('clearBtn').disabled = T.circuit.length === 0;
     $('rule').textContent = T.rule || hint;
     const trace = runCircuit(T.circuit);
-    $('strip').innerHTML = '<span class="node start">[1, 0]</span>' +
+    $('strip').innerHTML = `<span class="node start">${o.start || '[1, 0]'}</span>` +
       T.circuit.map(g => `<span class="wire"></span><span class="node">${g}</span>`).join('') +
-      '<span class="wire"></span><span class="node end">측정</span>';
+      (o.end === '' ? '' : '<span class="wire"></span><span class="node end">측정</span>');
     $('trace').textContent = trace.map((s2, k) => (k === 0 ? '시작 ' : `${T.circuit[k - 1]} `) + shortText(s2)).join('  →  ');
   }
 
@@ -2018,6 +2329,86 @@ footer p { margin: 0; }
     $('code').textContent = codeText4();
   }
 
+  const DAY5_ONLY = ['ctlMul', 'ctlDag', 'ctlUni', 'mboard'];
+  const GATE_SAY = { X: 'X는 두 숫자를 맞바꾸는 게이트예요.', Z: 'Z는 둘째 숫자의 부호를 뒤집는 게이트예요.', H: 'H는 중첩을 만드는 게이트예요. 0.707은 1/√2예요.' };
+  const UNI_SAY = { X: 'X는 0과 1을 맞바꾸는 게이트예요.', H: 'H는 중첩을 만드는 게이트예요.', S: 'S는 둘째 진폭에 1j를 곱하는 게이트예요.',
+    A: 'A는 첫째 진폭을 2배로 만드는 행렬이에요.', B: 'B는 둘째 진폭을 첫째 진폭에 더하는 행렬이에요.' };
+  const DAG_SAY = { M: 'M은 연습용 행렬이에요. 두 버튼을 모두 누르면 켤레 전치가 돼요. 순서는 상관없어요.',
+    S: 'S는 둘째 진폭에 1j를 곱하는 게이트예요. 두 버튼을 모두 눌러 보세요.',
+    H: 'H는 숫자가 모두 실수예요. 두 버튼을 모두 누르면 어떻게 될까요?' };
+  function boardD5(i) {
+    const d = d5(), code = $('stateText'), line = $('ketLine');
+    const mark = (root, attr, val) => $(root).querySelectorAll(`[${attr}]`).forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute(attr) === String(val))));
+    const op = (t, next) => `<span class="mgrp"><span class="mop" aria-hidden="true">${t}</span>${next}</span>`;
+    hide($('dial'), true); hide($('viz'), true);
+    $('kv').hidden = true;
+    code.classList.remove('long');
+    ['ctlSlider', 'ctlXY', 'ctlRot', 'ctlPh', 'ctlProb', 'ctlAmp', 'ctlNorm', 'ctlDraws'].concat(DAY4_ONLY).forEach(id => { $(id).hidden = true; });
+    $('ctlMul').hidden = i !== 0; $('ctlGates').hidden = i !== 1; $('ctlDag').hidden = i !== 2; $('ctlUni').hidden = i !== 3;
+    $('mboard').hidden = false;
+
+    let html = '', readout = true, sum = '';
+    if (i === 0) {
+      const f = x => num(x, 3), par = x => (x < 0 ? `(${f(x)})` : f(x)), nb = t => `<span class="nb">${t}</span>`;
+      const calc = r => `${nb(`${f(d.g[r][0][0])}×${par(d.v[0])}`)} + ${nb(`${par(d.g[r][1][0])}×${par(d.v[1])}`)} ${nb(`= ${f(d.s[r])}`)}`;
+      html = `<div class="mxs">${mxHTML(d.g, { name: `게이트 ${T.gt}`, rows: true, id: 'mxGate' })}${op('×', vecHTML(d.v.map(re), { name: `상태 ${NAMED[T.st][1]}` }))}</div>` +
+        `<div class="calc"><p class="cl z"><span class="ck">첫째 줄이 결과의 첫째 숫자를 만들어요</span><code id="calc0">${calc(0)}</code></p>` +
+        `<p class="cl o"><span class="ck">둘째 줄이 결과의 둘째 숫자를 만들어요</span><code id="calc1">${calc(1)}</code></p></div>`;
+      $('stateKey').textContent = '곱한 결과 [a, b]';
+      mark('ctlMul', 'data-mg', T.gt); mark('ctlMul', 'data-ms', T.st);
+      $('mulRule').textContent = GATE_SAY[T.gt];
+    } else if (i === 1) {
+      const seq = T.circuit, name = mName(d.tot), bare = name.replace('-', '');
+      const cap = !seq.length ? '아직 게이트가 없어요. I는 아무것도 하지 않는 행렬이에요.'
+        : name === 'I' ? 'I와 같아요. 아무것도 하지 않은 것과 같아요.'
+          : name[0] === '-' ? `${bare}에 -1을 곱한 행렬이에요. 측정 결과는 ${bare}와 똑같아요.`
+            : name && seq.length > 1 ? `${name} 하나를 건 것과 같은 행렬이에요.`
+              : name ? `${name}의 행렬이에요.` : '이름이 따로 없는 행렬이에요.';
+      html = `<p class="mform"><span class="k">전체 행렬</span><code id="mform">= ${seq.length ? seq.slice().reverse().join(' · ') : 'I'}</code></p>` +
+        (seq.length > 1 ? `<p class="mcap sub" id="morder">건 순서는 ${seq.join(', ')}예요. 식에는 거꾸로 적어요.</p>` : '') +
+        `<div class="mxs">${mxHTML(d.tot, { rows: true, id: 'mxTotal', say: '전체 행렬' })}</div><p class="mcap" id="mcap">${cap}</p>`;
+      $('stateKey').textContent = '|0>에 건 결과';
+      gatesUI(false, false, '게이트를 눌러 회로에 추가하세요.', { start: '|0&gt;', end: '' });
+    } else if (i === 2) {
+      const both = T.tr && T.cj;
+      const label = both ? `켤레 전치 ${d.key}†` : T.tr ? '전치한 행렬' : T.cj ? '켤레를 한 행렬' : '아직 그대로';
+      html = `<div class="mxs">${mxHTML(d.from, { name: `원래 행렬 ${d.key}` })}` +
+        `${op('→', mxHTML(d.now, { name: label, id: 'mxDag', hot: (r, k) => !cnear(d.now[r][k], d.from[r][k]) }))}</div>`;
+      readout = false;
+      mark('ctlDag', 'data-dm', T.dm);
+      $('trBtn').setAttribute('aria-pressed', String(T.tr)); $('cjBtn').setAttribute('aria-pressed', String(T.cj));
+      $('dagRule').textContent = !T.tr && !T.cj ? DAG_SAY[d.key]
+        : both ? (d.same ? `둘 다 했는데 하나도 변하지 않았어요. ${d.key}† = ${d.key}예요.` : `둘 다 했어요. 이것이 ${d.key}†예요. 바뀐 칸에 색을 칠했어요.`)
+          : T.tr ? `전치만 했어요. 오른쪽 위와 왼쪽 아래 숫자가 자리를 바꿔요.${d.same ? ' 이 행렬은 두 숫자가 같아서 그대로예요.' : ''} 켤레도 눌러 보세요.`
+            : `켤레만 했어요. j가 붙은 숫자의 부호가 뒤집혀요.${d.same ? ' 이 행렬은 모두 실수라서 그대로예요.' : ''} 전치도 눌러 보세요.`;
+    } else {
+      html = T.uc
+        ? `<div class="mxs">${mxHTML(d.dag, { name: 'U†' })}${op('·', mxHTML(d.u, { name: 'U' }))}` +
+          `${op('=', mxHTML(d.prod, { name: 'U†U', id: 'mxProd', hot: (r, k) => !cnear(d.prod[r][k], MX.I[r][k]) }))}</div>` +
+          `<p class="mcap" id="mcap">${d.ok ? 'U†U가 I와 같아요. 유니터리예요.' : 'U†U가 I가 아니에요. 유니터리가 아니에요.'}</p>`
+        : `<div class="mxs">${mxHTML(d.u, { name: `U = ${d.key}`, id: 'mxU' })}</div><p class="mcap sub" id="mcap">버튼을 누르면 U†U를 계산해요.</p>`;
+      readout = T.uc;
+      $('stateKey').textContent = '[0.6, 0.8]에 곱한 결과';
+      sum = `확률의 합 = ${num(d.p0, 2)} + ${num(d.p1, 2)} = ${num(d.p0 + d.p1, 2)}`;
+      mark('ctlUni', 'data-um', T.um);
+      $('uniRule').textContent = T.rule || UNI_SAY[d.key];
+      $('uniBtn').disabled = T.uc;
+    }
+    $('mboard').innerHTML = html;
+    $('stateRow').hidden = !readout; $('rowP0').hidden = !readout; $('rowP1').hidden = !readout; $('sumLine').hidden = !readout;
+    line.hidden = !(readout && i < 2);
+    if (readout) {
+      code.textContent = i === 3 ? arr(d.s) : shortText(d.s);
+      if (i < 2) { line.textContent = ketText(d.s); sum = `a² + b² = ${d.p0.toFixed(3)} + ${d.p1.toFixed(3)} = 1`; }
+      setProbs(d.p0, d.p1);
+      $('sumLine').textContent = sum;
+    }
+    renderResult(i, false);
+    $('codeTitle').textContent = '같은 계산을 파이썬으로';
+    $('codeLead').textContent = i === 1 || i === 3 ? '지금 화면의 계산을 파이썬으로 하고, Qiskit의 결과와도 비교해요.' : '지금 화면의 계산을 파이썬 코드로 쓰면 이렇게 돼요.';
+    $('code').textContent = codeText5();
+  }
+
   function render(snap) {
     $('home').hidden = view !== 'home';
     $('play').hidden = view !== 'play';
@@ -2062,7 +2453,9 @@ footer p { margin: 0; }
       return;
     }
     $('drawOne').hidden = false;
-    if (day === 1) boardD1(i, snap); else if (day === 2) boardD2(i); else if (day === 3) boardD3(i, snap); else boardD4(i, snap);
+    $('stateRow').hidden = false;
+    if (day !== 5) DAY5_ONLY.forEach(id => { $(id).hidden = true; });
+    if (day === 1) boardD1(i, snap); else if (day === 2) boardD2(i); else if (day === 3) boardD3(i, snap); else if (day === 4) boardD4(i, snap); else boardD5(i);
   }
 
   /* ---------- views: the start screen, and each day at #daily-N ---------- */
@@ -2119,7 +2512,7 @@ footer p { margin: 0; }
   $('angleDown').addEventListener('click', () => { T.deg = Math.max(0, T.deg - 1); changed(); render(true); });
   $('angleUp').addEventListener('click', () => { T.deg = Math.min(90, T.deg + 1); changed(); render(true); });
   $('ctlGates').addEventListener('click', e => { const b = e.target.closest('[data-gate]'); if (b && !b.disabled) addGate(b.dataset.gate); });
-  $('undoBtn').addEventListener('click', () => { T.circuit.pop(); T.rule = ''; changed(); render(); });
+  $('undoBtn').addEventListener('click', () => { T.circuit.pop(); T.rule = ''; changed(); if (day === 5) seqNote(); render(); });
   $('clearBtn').addEventListener('click', () => { T.circuit = []; T.rule = ''; changed(); render(); });
 
   $('reIn').addEventListener('input', e => setXY(Number(e.target.value), T.y));
@@ -2159,6 +2552,26 @@ footer p { margin: 0; }
   $('measBtn').addEventListener('click', measureOnce);
   $('prepBtn').addEventListener('click', prepare);
   $('midBtn').addEventListener('click', toggleMid);
+  $('ctlMul').addEventListener('click', e => {
+    const g = e.target.closest('[data-mg]'), v = e.target.closest('[data-ms]');
+    if (g) T.gt = g.dataset.mg; else if (v) T.st = Number(v.dataset.ms); else return;
+    pickMul();
+  });
+  $('ctlDag').addEventListener('click', e => {
+    const m = e.target.closest('[data-dm]'), b = e.target.closest('[data-dop]');
+    if (m) { T.dm = Number(m.dataset.dm); T.tr = false; T.cj = false; }
+    else if (b) { if (b.dataset.dop === 'tr') T.tr = !T.tr; else T.cj = !T.cj; }
+    else return;
+    dagNote();
+    render(true);
+  });
+  $('ctlUni').addEventListener('click', e => {
+    const m = e.target.closest('[data-um]');
+    if (!m) return;
+    T.um = Number(m.dataset.um); T.uc = false; T.note = ''; T.rule = '';
+    render(true);
+  });
+  $('uniBtn').addEventListener('click', checkUni);
   $('pbIn').addEventListener('input', e => setProb(Number(e.target.value)));
   $('pbDown').addEventListener('click', () => setProb(clamp(T.p - 1, 0, 100)));
   $('pbUp').addEventListener('click', () => setProb(clamp(T.p + 1, 0, 100)));
@@ -2235,12 +2648,17 @@ footer p { margin: 0; }
       ['x', 'y', 'rot', 'ph', 'p', 'a10', 'sgn', 'nx', 'ny', 'bq', 'guess'].forEach(k => { if (typeof data.T[k] === 'number') T[k] = data.T[k]; });
       T.bq = clamp(Math.round(T.bq) || 0, 0, BORN.length - 1);
       T.guess = clamp(Math.round((T.guess || 0) / 10) * 10, 0, 1000);
+      if (['X', 'Z', 'H'].includes(data.T.gt)) T.gt = data.T.gt;
+      T.st = clamp(Math.round(Number(data.T.st)) || 0, 0, 3);
+      T.dm = clamp(Math.round(Number(data.T.dm)) || 0, 0, DAGS.length - 1);
+      T.um = clamp(Math.round(Number(data.T.um)) || 0, 0, UNIS.length - 1);
+      T.tr = data.T.tr === true; T.cj = data.T.cj === true;
     }
     if (r.blocked) $('dayHint').textContent = blockedHint(r.blocked);
     render(true);
   }
   const hot = window.claude && window.claude.hot;
-  if (hot && hot.snapshot) hot.snapshot(() => ({ P, day, T: { deg: T.deg, circuit: T.circuit, x: T.x, y: T.y, rot: T.rot, ph: T.ph, p: T.p, a10: T.a10, sgn: T.sgn, nx: T.nx, ny: T.ny, bq: T.bq, guess: T.guess } }));
+  if (hot && hot.snapshot) hot.snapshot(() => ({ P, day, T: { deg: T.deg, circuit: T.circuit, x: T.x, y: T.y, rot: T.rot, ph: T.ph, p: T.p, a10: T.a10, sgn: T.sgn, nx: T.nx, ny: T.ny, bq: T.bq, guess: T.guess, gt: T.gt, st: T.st, dm: T.dm, um: T.um, tr: T.tr, cj: T.cj } }));
   if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();
 </script>
