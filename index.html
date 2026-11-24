@@ -228,7 +228,8 @@ button { font: inherit; color: inherit; }
 .mg::before, .mg::after { content: ""; position: absolute; top: 0; bottom: 0; width: 7px; border: 2px solid var(--ink); }
 .mg::before { left: 0; border-right: 0; border-radius: 4px 0 0 4px; }
 .mg::after { right: 0; border-left: 0; border-radius: 0 4px 4px 0; }
-.mc { text-align: right; padding: 0 3px 1px; border-bottom: 3px solid transparent; }
+.mc { text-align: right; padding: 0 3px 1px; border-bottom: 3px solid transparent; white-space: nowrap; }
+.mg.small { font-size: 13.5px; gap: 6px 8px; padding: 8px 11px; }
 .mc.z { border-bottom-color: var(--zero); }
 .mc.o { border-bottom-color: var(--one); }
 .mc.hot { background: var(--accent); color: var(--accent-ink); border-radius: 5px; }
@@ -368,7 +369,7 @@ footer p { margin: 0; }
     </div>
     <div class="journey panel">
       <h2>Daily 1부터 Daily 30까지</h2>
-      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 7부터는 준비되는 대로 추가돼요.</p>
+      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 8부터는 준비되는 대로 추가돼요.</p>
       <div id="weeks"></div>
     </div>
   </section>
@@ -671,7 +672,7 @@ footer p { margin: 0; }
 
   </main>
 
-  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 6까지 만들어져 있어요.</p></footer>
+  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 7까지 만들어져 있어요.</p></footer>
 </div>
 
 <script>
@@ -681,8 +682,8 @@ footer p { margin: 0; }
   const hide = (el, off) => { if (off) el.setAttribute('hidden', ''); else el.removeAttribute('hidden'); };
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const SQ = Math.SQRT1_2, RAD = Math.PI / 180;
-  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1', 3: 'qubit-quest-d3-v1', 4: 'qubit-quest-d4-v1', 5: 'qubit-quest-d5-v1', 6: 'qubit-quest-d6-v1' };
-  const BUILT = 6;
+  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1', 3: 'qubit-quest-d3-v1', 4: 'qubit-quest-d4-v1', 5: 'qubit-quest-d5-v1', 6: 'qubit-quest-d6-v1', 7: 'qubit-quest-d7-v1' };
+  const BUILT = 7;
   const CX = 150, CY = 128, R = 88;
 
   const tidy = v => {
@@ -1040,6 +1041,51 @@ footer p { margin: 0; }
     q0: '', qSeen: false, q1: false, q2: false, z1: false, z2: false, z3: false,
     quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
 
+  /* ---------- Daily 7: 1주 차 복습. Free circuits from |0> with all six gates ---------- */
+  const STAGES7 = [
+    { name: '중첩 다시 보기',
+      intro: '1주 차 복습이에요. 먼저 Daily 1과 3의 중첩이에요. <code>|0&gt;</code>에서 시작해서 X, H, Z만으로 목표 상태를 만들어 보세요.',
+      goals: [
+        { text: '<code>|+&gt;</code> 만들기', done: f => f.r1 },
+        { text: '<code>|-&gt;</code> 만들기', done: f => f.r2 },
+        { text: '<code>[0, -1]</code> 만들기', done: f => f.r3 }] },
+    { name: '확률 만들기',
+      intro: '이번에는 상태가 아니라 확률이 목표예요. 보른 규칙으로 진폭 크기를 제곱하면 확률이에요. 여섯 게이트를 모두 쓸 수 있어요. Daily 6에서 본 "H 사이의 위상"을 떠올려 보세요.',
+      goals: [
+        { text: '0이 나올 확률 85.4% 만들기', done: f => f.r4 },
+        { text: '0이 나올 확률 14.6% 만들기', done: f => f.r5 },
+        { text: '확률은 반반인데 둘째 진폭에 j가 붙은 상태 만들기', done: f => f.r6 }] },
+    { name: '행렬 다시 보기',
+      intro: 'Daily 5에서 본 것처럼, 게이트를 여러 개 걸면 행렬 하나로 줄일 수 있어요. 아래에 지금 회로 전체의 행렬이 나와요. 해당 게이트를 쓰지 않고 같은 행렬을 만들어 보세요.',
+      goals: [
+        { text: 'X를 쓰지 않고 전체 행렬을 <code>X</code>로 만들기', done: f => f.r7 },
+        { text: 'Z를 쓰지 않고 전체 행렬을 <code>Z</code>로 만들기', done: f => f.r8 },
+        { text: '게이트 3개 이상으로 전체 행렬을 <code>I</code>로 만들기', done: f => f.r9 }] },
+    { name: '측정 다시 보기',
+      intro: '마지막은 Daily 4의 측정이에요. 회로를 만들고 1,000번 뽑아서, 확률이 횟수로 어떻게 나타나는지 확인해 보세요.',
+      goals: [
+        { text: 'H가 들어간 회로로 1,000번 모두 1 나오게 하기', done: f => f.m1 },
+        { text: '0이 800~910번 나오게 하기', done: f => f.m2 },
+        { text: '게이트 2개 이상으로 0과 1이 반반(400~600번) 나오게 하기', done: f => f.m3 }] },
+    { name: 'Daily 7 보스',
+      intro: '1주 차 전체에서 고른 문제 다섯 개예요. 모두 맞히면 Daily 7 클리어이자 1주 차 완료예요.',
+      goals: [{ text: '문제 5개 모두 맞히기', done: f => f.quiz }] }
+  ];
+  const QUIZ7 = [
+    { q: '상태 <code>[0.6, -0.8]</code>을 측정하면 1이 나올 확률은?', opts: ['-80%', '64%', '80%', '36%'], a: 1,
+      why: '확률은 진폭 크기의 제곱이에요. 부호는 상관없어서 0.8 × 0.8 = 0.64예요. (Daily 4)' },
+    { q: '복소수 두 개를 곱하면?', opts: ['크기는 더하고 각도는 곱한다', '크기는 곱하고 각도는 더한다', '크기와 각도 모두 더한다'], a: 1,
+      why: 'e^(iθ)를 곱하면 크기는 그대로고 각도만 θ만큼 돌아요. (Daily 2)' },
+    { q: '<code>|+&gt;</code>를 측정해 0이 나왔어요. 같은 큐비트를 다시 측정하면?', opts: ['반반', '항상 0', '항상 1'], a: 1,
+      why: '측정하는 순간 상태가 |0>으로 바뀌어요. (Daily 4)' },
+    { q: '게이트가 되려면 행렬 U가 만족해야 하는 조건은?', opts: ['U†U = I', '숫자가 모두 0 또는 1', 'U·U = U'], a: 0,
+      why: '유니터리여야 확률의 합이 1로 유지되고 되돌릴 수 있어요. (Daily 5)' },
+    { q: 'H, T, H를 차례로 걸고 1,000번 측정하면 0은 몇 번쯤?', opts: ['500번 근처', '850번 근처', '1,000번', '0번'], a: 1,
+      why: 'T의 45°가 H 사이에서 cos²(22.5°) = 0.854로 드러나요. (Daily 6)' }
+  ];
+  const fresh7 = () => ({ r1: false, r2: false, r3: false, r4: false, r5: false, r6: false, r7: false, r8: false, r9: false,
+    m1: false, m2: false, m3: false, quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
+
   const LEVELS = {
     1: { title: '큐비트와 측정', stages: STAGES1, quiz: QUIZ1, fresh: fresh1, touched: f => f.s0 > 0,
       learned: [
@@ -1088,7 +1134,15 @@ footer p { margin: 0; }
         'S는 둘째 진폭을 90°, T는 45° 돌린다. T·T = S, S·S = Z.',
         '위상은 바로 측정하면 보이지 않지만, H 사이에 넣으면 확률로 드러난다.',
         '같은 상태로 가는 게이트 순서는 여러 가지다.'],
-      next: 'Daily 7은 1주 복습이에요. 아직 준비 중이에요.' }
+      next: 'Daily 7이 열렸어요. 1주 차 복습이에요.' },
+    7: { title: '1주 차 복습', stages: STAGES7, quiz: QUIZ7, fresh: fresh7, touched: f => f.r1 || f.r2 || f.r3 || f.r4,
+      learned: [
+        '중첩: 상태는 진폭 두 개의 벡터이고, 크기 제곱의 합은 1이다.',
+        '측정: 확률은 진폭 크기의 제곱이고, 측정하면 상태가 바뀐다.',
+        '위상: 바로 측정하면 보이지 않지만 H 사이에서 확률로 드러난다.',
+        '유니터리: 게이트는 U†U = I인 행렬이고, 여러 게이트는 행렬 하나로 줄일 수 있다.',
+        '1주 차 끝. 다음 주부터는 큐비트가 두 개가 된다.'],
+      next: 'Daily 8은 텐서곱과 두 큐비트예요. 아직 준비 중이에요.' }
   };
 
   const WEEKS = ['1주 · 한 큐비트', '2주 · 여러 큐비트와 얽힘', '3주 · 회로와 프로토콜', '4주 · 첫 알고리즘', '5주 · 다음 알고리즘'];
@@ -1106,7 +1160,7 @@ footer p { margin: 0; }
   const LOCK = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" rx="1.2" fill="currentColor"></rect><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>';
 
   /* ---------- progress: one record per day, plus what is on screen right now ---------- */
-  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() }, 3: { stage: 0, f: fresh3() }, 4: { stage: 0, f: fresh4() }, 5: { stage: 0, f: fresh5() }, 6: { stage: 0, f: fresh6() } };
+  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() }, 3: { stage: 0, f: fresh3() }, 4: { stage: 0, f: fresh4() }, 5: { stage: 0, f: fresh5() }, 6: { stage: 0, f: fresh6() }, 7: { stage: 0, f: fresh7() } };
   let day = 1, S = P[1], LV = LEVELS[1];
   const freshT = () => ({ deg: 0, circuit: [], tape: [], counts: null, note: '', rule: '',
     wrong: LV.quiz.map(() => []), x: 2, y: 1, rot: 0, ph: 0, p: 50, a10: 10, sgn: 1, nx: 2, ny: 1, normed: false,
@@ -1258,7 +1312,7 @@ footer p { margin: 0; }
     const cell = (r, k) => `<span class="mc${o.rows ? (r ? ' o' : ' z') : ''}${o.hot && o.hot(r, k) ? ' hot' : ''}">${cTight(a[r][k])}</span>`;
     const say = `${o.say || o.name || '행렬'}: 첫째 줄 ${cTight(a[0][0])}, ${cTight(a[0][1])}. 둘째 줄 ${cTight(a[1][0])}, ${cTight(a[1][1])}`;
     return `<span class="mx"${o.id ? ` id="${o.id}"` : ''} role="img" aria-label="${esc(say)}">${o.name ? `<span class="mn">${esc(o.name)}</span>` : ''}` +
-      `<span class="mg">${cell(0, 0)}${cell(0, 1)}${cell(1, 0)}${cell(1, 1)}</span></span>`;
+      `<span class="mg${[0, 1].some(r => [0, 1].some(k => cTight(a[r][k]).length > 7)) ? ' small' : ''}">${cell(0, 0)}${cell(0, 1)}${cell(1, 0)}${cell(1, 1)}</span></span>`;
   }
   function vecHTML(v, o) {
     o = o || {};
@@ -1332,7 +1386,12 @@ footer p { margin: 0; }
     $('vizDesc').textContent = `첫째 진폭 ${cTight(v[0])}, 각도 ${angText(v[0])}. 둘째 진폭 ${cTight(v[1])}, 각도 ${angText(v[1])}.`;
     $('vizBody').innerHTML = vizPairC(v);
   }
-  const p1Now = () => (day === 1 ? stateNow()[1] ** 2 : day === 2 ? d2().p1 : day === 3 ? d3().p1 : day === 4 ? d4().p1 : day === 6 ? d6().p1 : 0);
+  function d7() {
+    const tr = run6(T.circuit, START6.zero), v = tr[tr.length - 1];
+    const tot = T.circuit.reduce((acc, k) => mmul(MX[k], acc), MX.I);
+    return { v, tr, tot, p0: pr(v[0]), p1: pr(v[1]) };
+  }
+  const p1Now = () => (day === 1 ? stateNow()[1] ** 2 : day === 2 ? d2().p1 : day === 3 ? d3().p1 : day === 4 ? d4().p1 : day === 6 ? d6().p1 : day === 7 ? d7().p1 : 0);
 
   /* ---------- dial (Daily 1) ---------- */
   const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1718,7 +1777,7 @@ footer p { margin: 0; }
     let one = 0;
     for (let i = 0; i < 1000; i++) if (Math.random() < p1) one++;
     T.counts = { zero: 1000 - one, one };
-    T.note = (day === 1 ? judge : day === 2 ? judge2 : day === 3 ? judge3 : day === 4 ? judge4 : judge6)(p1, 1000 - one, one);
+    T.note = (day === 1 ? judge : day === 2 ? judge2 : day === 3 ? judge3 : day === 4 ? judge4 : day === 6 ? judge6 : judge7)(p1, 1000 - one, one);
     render();
   }
   function addGate(g) {
@@ -1729,6 +1788,7 @@ footer p { margin: 0; }
     changed();
     if (day === 5) seqNote();
     if (day === 6) note6();
+    if (day === 7) note7();
     render();
   }
   function go(i) {
@@ -1870,6 +1930,35 @@ footer p { margin: 0; }
     changed();
     render(true);
   }
+  /* ---------- Daily 7 actions ---------- */
+  function note7() {
+    const f = S.f, i = S.stage, c = T.circuit, d = d7(), n = c.length;
+    const say = [];
+    T.note = '';
+    if (!n || i > 2) return;
+    if (i === 0) {
+      if (vSame(d.v, START6.plus)) { f.r1 = true; say.push('H 하나로 중첩이 됐어요. 0과 1이 반반이에요. (Daily 1)'); }
+      if (vSame(d.v, [re(SQ), re(-SQ)])) { f.r2 = true; say.push('<code>|-&gt;</code>예요. 확률은 <code>|+&gt;</code>와 같지만 둘째 진폭의 부호가 달라요. (Daily 3)'); }
+      if (vSame(d.v, [re(0), re(-1)])) { f.r3 = true; say.push('<code>[0, -1]</code>은 측정하면 항상 1이에요. 앞의 -1은 측정으로는 보이지 않아요.'); }
+    } else if (i === 1) {
+      if (Math.abs(d.p0 - 0.854) < 0.005) { f.r4 = true; say.push('85.4%! H 사이에 넣은 45°가 cos²(22.5°)로 드러났어요. (Daily 6)'); }
+      if (Math.abs(d.p0 - 0.146) < 0.005) { f.r5 = true; say.push('14.6%예요. 85.4%의 반대쪽이에요. 각도를 135°로 돌리거나, 마지막에 X로 뒤집으면 돼요.'); }
+      if (Math.abs(d.p0 - 0.5) < 1e-6 && Math.abs(d.v[1][1]) > 1e-6) { f.r6 = true; say.push('확률은 반반인데 둘째 진폭에 j가 붙었어요. 확률만으로는 위상을 알 수 없어요. (Daily 2)'); }
+    } else {
+      if (n >= 2 && !c.includes('X') && mSame(d.tot, MX.X)) { f.r7 = true; say.push('X 없이 X를 만들었어요. 예를 들어 H·Z·H = X예요. (Daily 5)'); }
+      if (n >= 1 && !c.includes('Z') && mSame(d.tot, MX.Z)) { f.r8 = true; say.push('Z 없이 Z예요. S·S, T 네 번, H·X·H 모두 Z예요.'); }
+      if (n >= 3 && mSame(d.tot, MX.I)) { f.r9 = true; say.push('게이트를 여러 개 걸었는데 아무것도 안 한 것과 같아요. 유니터리라서 되돌릴 수 있기 때문이에요.'); }
+    }
+    T.note = say.map(t => `<p>${t}</p>`).join('');
+  }
+  function judge7(p1, zero, one) {
+    const f = S.f, c = T.circuit, hits = [];
+    if (one === 1000 && c.includes('H')) { f.m1 = true; hits.push('H가 들어갔는데도 1,000번 모두 1이에요. 간섭으로 0 쪽이 지워졌어요.'); }
+    if (zero >= 800 && zero <= 910) { f.m2 = true; hits.push(`0이 ${zero}번이에요. 확률이 ${((1 - p1) * 100).toFixed(1)}%라 1,000번이면 그 근처로 나와요.`); }
+    if (c.length >= 2 && zero >= 400 && zero <= 600) { f.m3 = true; hits.push('반반이에요. 정확히 500이 아니어도 괜찮아요. 1,000번이면 15번 안팎은 흔들려요. (Daily 4)'); }
+    return `<p>0이 ${zero}번, 1이 ${one}번 나왔어요. 계산한 확률은 0이 ${((1 - p1) * 100).toFixed(1)}%예요.</p>` + hits.map(t => `<p>${t}</p>`).join('');
+  }
+
   /* ---------- Daily 6 actions ---------- */
   function note6() {
     const f = S.f, i = S.stage, q = T.circuit.join(''), v = d6().v;
@@ -2251,7 +2340,22 @@ footer p { margin: 0; }
     lines.push(`# 상태 벡터. 약 ${arr(d.v)}`, 'print(Statevector(qc).data.round(3))');
     return lines.join('\n');
   }
-  const codeNow = () => (day === 1 ? codeText() : day === 2 ? codeText2() : day === 3 ? codeText3() : day === 4 ? codeText4() : day === 5 ? codeText5() : codeText6());
+  function codeText7() {
+    const i = S.stage, d = d7();
+    if (i === 3) {
+      const lines = ['from qiskit import QuantumCircuit', 'from qiskit_aer import AerSimulator', '', 'qc = QuantumCircuit(1, 1)'];
+      T.circuit.forEach(g => lines.push(`qc.${g.toLowerCase()}(0)`));
+      lines.push('qc.measure(0, 0)', '', 'counts = AerSimulator().run(qc, shots=1000).result().get_counts()', `# 0이 약 ${(d.p0 * 100).toFixed(1)}% 나온다`, 'print(counts)');
+      return lines.join('\n');
+    }
+    const lines = ['from qiskit import QuantumCircuit', i === 2 ? 'from qiskit.quantum_info import Operator' : 'from qiskit.quantum_info import Statevector', '', 'qc = QuantumCircuit(1)'];
+    T.circuit.forEach(g => lines.push(`qc.${g.toLowerCase()}(0)`));
+    if (i === 2) lines.push(`# 회로 전체의 행렬. 약 ${mText(d.tot)}`, 'print(Operator(qc).data.round(3))');
+    else lines.push(`# 상태 벡터. 약 ${arr(d.v)}`, 'print(Statevector(qc).data.round(3))');
+    if (i === 1) lines.push('# 보른 규칙: 확률 = 진폭 크기의 제곱', 'print(Statevector(qc).probabilities().round(3))');
+    return lines.join('\n');
+  }
+  const codeNow = () => (day === 1 ? codeText() : day === 2 ? codeText2() : day === 3 ? codeText3() : day === 4 ? codeText4() : day === 5 ? codeText5() : day === 6 ? codeText6() : codeText7());
 
   function renderHome() {
     const n = focusDay(), lv = LEVELS[n], f = P[n].f;
@@ -2691,6 +2795,37 @@ footer p { margin: 0; }
     $('code').textContent = codeText6();
   }
 
+  function boardD7(i) {
+    const d = d7(), code = $('stateText'), line = $('ketLine');
+    hide($('dial'), true); hide($('viz'), false);
+    $('kv').hidden = true;
+    ['ctlSlider', 'ctlXY', 'ctlRot', 'ctlPh', 'ctlProb', 'ctlAmp', 'ctlNorm', 'ctlMul', 'ctlDag', 'ctlUni', 'ctlPhase', 'ctlTarget'].concat(DAY4_ONLY).forEach(id => { $(id).hidden = true; });
+    $('ctlGates').hidden = false; $('ctlDraws').hidden = i !== 3;
+    $('draws').classList.remove('single');
+    const trace = d.tr.map((v, k) => (k === 0 ? '시작 ' : `${T.circuit[k - 1]} `) + arr(v)).join('  →  ');
+    gatesUI(false, false, '게이트를 눌러 회로에 추가하세요.', { only: i === 0 ? ['X', 'H', 'Z'] : SIX, start: '|0&gt;', end: i === 3 ? undefined : '', trace });
+    $('stateKey').textContent = i === 3 ? '측정 직전의 상태' : '지금 상태';
+    paintViz6(d.v, '지금 상태의 두 진폭');
+    $('mboard').hidden = i !== 2;
+    if (i === 2) {
+      const name = mName(d.tot);
+      $('mboard').innerHTML = `<p class="mform"><span class="k">전체 행렬</span><code id="mform">= ${T.circuit.length ? T.circuit.slice().reverse().join(' · ') : 'I'}</code></p>` +
+        `<div class="mxs">${mxHTML(d.tot, { rows: true, id: 'mxTotal', say: '전체 행렬' })}</div>` +
+        `<p class="mcap" id="mcap">${name ? (name[0] === '-' ? `${name.slice(1)}에 -1을 곱한 행렬이에요.` : `${name}와 같은 행렬이에요.`) : '이름이 따로 없는 행렬이에요.'}</p>`;
+    }
+    code.textContent = arr(d.v);
+    code.classList.toggle('long', code.textContent.length > 18);
+    line.hidden = false;
+    line.textContent = ket6(d.v);
+    $('rowP0').hidden = false; $('rowP1').hidden = false; $('sumLine').hidden = false;
+    setProbs(d.p0, d.p1);
+    $('sumLine').textContent = `|a|² + |b|² = ${d.p0.toFixed(3)} + ${d.p1.toFixed(3)} = 1`;
+    renderResult(i, i === 3);
+    $('codeTitle').textContent = '같은 회로를 Qiskit으로';
+    $('codeLead').textContent = '지금 화면의 회로를 파이썬 코드로 쓰면 이렇게 돼요.';
+    $('code').textContent = codeText7();
+  }
+
   function render(snap) {
     $('home').hidden = view !== 'home';
     $('play').hidden = view !== 'play';
@@ -2738,7 +2873,8 @@ footer p { margin: 0; }
     $('stateRow').hidden = false;
     if (day !== 5) DAY5_ONLY.forEach(id => { $(id).hidden = true; });
     if (day !== 6) DAY6_ONLY.forEach(id => { $(id).hidden = true; });
-    if (day === 1) boardD1(i, snap); else if (day === 2) boardD2(i); else if (day === 3) boardD3(i, snap); else if (day === 4) boardD4(i, snap); else if (day === 5) boardD5(i); else boardD6(i);
+    if (day !== 5 && day !== 7) $('mboard').hidden = true;
+    if (day === 1) boardD1(i, snap); else if (day === 2) boardD2(i); else if (day === 3) boardD3(i, snap); else if (day === 4) boardD4(i, snap); else if (day === 5) boardD5(i); else if (day === 6) boardD6(i); else boardD7(i);
   }
 
   /* ---------- views: the start screen, and each day at #daily-N ---------- */
@@ -2795,8 +2931,8 @@ footer p { margin: 0; }
   $('angleDown').addEventListener('click', () => { T.deg = Math.max(0, T.deg - 1); changed(); render(true); });
   $('angleUp').addEventListener('click', () => { T.deg = Math.min(90, T.deg + 1); changed(); render(true); });
   $('ctlGates').addEventListener('click', e => { const b = e.target.closest('[data-gate]'); if (b && !b.disabled) addGate(b.dataset.gate); });
-  $('undoBtn').addEventListener('click', () => { T.circuit.pop(); T.rule = ''; changed(); if (day === 5) seqNote(); if (day === 6) note6(); render(); });
-  $('clearBtn').addEventListener('click', () => { T.circuit = []; T.rule = ''; changed(); if (day === 6) note6(); render(); });
+  $('undoBtn').addEventListener('click', () => { T.circuit.pop(); T.rule = ''; changed(); if (day === 5) seqNote(); if (day === 6) note6(); if (day === 7) note7(); render(); });
+  $('clearBtn').addEventListener('click', () => { T.circuit = []; T.rule = ''; changed(); if (day === 6) note6(); if (day === 7) note7(); render(); });
 
   $('reIn').addEventListener('input', e => setXY(Number(e.target.value), T.y));
   $('imIn').addEventListener('input', e => setXY(T.x, Number(e.target.value)));
@@ -2939,7 +3075,7 @@ footer p { margin: 0; }
     enterDay(r.view === 'play' ? r.day : (dayOpen(keptDay) ? keptDay : 1), true);
     if (data.T && keptDay === day) {
       T.deg = Number(data.T.deg) || 0;
-      T.circuit = (data.T.circuit || []).filter(g => (keptDay === 6 ? SIX.includes(g) : !!GATES[g])).slice(0, 6);
+      T.circuit = (data.T.circuit || []).filter(g => (keptDay >= 6 ? SIX.includes(g) : !!GATES[g])).slice(0, 6);
       ['x', 'y', 'rot', 'ph', 'p', 'a10', 'sgn', 'nx', 'ny', 'bq', 'guess'].forEach(k => { if (typeof data.T[k] === 'number') T[k] = data.T[k]; });
       T.bq = clamp(Math.round(T.bq) || 0, 0, BORN.length - 1);
       T.guess = clamp(Math.round((T.guess || 0) / 10) * 10, 0, 1000);
