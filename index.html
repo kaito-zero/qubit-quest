@@ -247,6 +247,23 @@ button { font: inherit; color: inherit; }
 .cl .ck { font-size: 13px; color: var(--muted); }
 .cl code { font-size: 14.5px; }
 .nb { white-space: nowrap; }
+
+/* Daily 8: four amplitudes of two qubits. Qubit 0 is the right-hand letter, tinted teal; qubit 1 the left, tinted rose */
+.amp4 { display: grid; gap: 8px; }
+.a4 { display: grid; grid-template-columns: 3.2em minmax(0, 1fr) 5.2em; align-items: center; gap: 4px 10px; }
+.a4 .kk { font-family: var(--font-mono); font-size: 17px; font-weight: 600; white-space: nowrap; }
+.a4 .q1 { color: var(--one); }
+.a4 .q0 { color: var(--zero); }
+.a4 .av { font-family: var(--font-mono); font-size: 14px; text-align: right; white-space: nowrap; }
+.a4 .track { grid-column: 2; }
+.a4 .fill { background: var(--ink); }
+.a4 .ct { grid-column: 2 / 4; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.a4.zero .kk, .a4.zero .av { opacity: 0.45; }
+.qkey { margin: 0; font-size: 13.5px; color: var(--muted); }
+.qkey .q1 { color: var(--one); font-weight: 600; }
+.qkey .q0 { color: var(--zero); font-weight: 600; }
+.kron { margin: 0; font-family: var(--font-mono); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.g2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 @media (max-width: 380px) {
   .mg { font-size: 15.5px; gap: 6px 12px; padding: 8px 12px; }
 }
@@ -369,7 +386,7 @@ footer p { margin: 0; }
     </div>
     <div class="journey panel">
       <h2>Daily 1부터 Daily 30까지</h2>
-      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 8부터는 준비되는 대로 추가돼요.</p>
+      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 9부터는 준비되는 대로 추가돼요.</p>
       <div id="weeks"></div>
     </div>
   </section>
@@ -626,6 +643,35 @@ footer p { margin: 0; }
         <span class="lbl" id="tgLabel">목표 고르기</span>
         <div class="choices" id="tgPick" role="group" aria-labelledby="tgLabel"></div>
       </div>
+      <div class="ctl" id="ctlTen" hidden>
+        <span class="lbl" id="t1Label">1번 큐비트 (왼쪽 글자)</span>
+        <div class="choices" role="group" aria-labelledby="t1Label">
+          <button type="button" class="choice" data-t1="0" aria-pressed="false">|0&gt;</button>
+          <button type="button" class="choice" data-t1="1" aria-pressed="false">|1&gt;</button>
+          <button type="button" class="choice" data-t1="2" aria-pressed="false">|+&gt;</button>
+        </div>
+        <span class="lbl" id="t0Label">0번 큐비트 (오른쪽 글자)</span>
+        <div class="choices" role="group" aria-labelledby="t0Label">
+          <button type="button" class="choice" data-t0="0" aria-pressed="false">|0&gt;</button>
+          <button type="button" class="choice" data-t0="1" aria-pressed="false">|1&gt;</button>
+          <button type="button" class="choice" data-t0="2" aria-pressed="false">|+&gt;</button>
+        </div>
+      </div>
+      <div class="ctl" id="ctlG2" hidden>
+        <span class="lbl" id="g2Label">게이트 걸기</span>
+        <div class="g2" role="group" aria-labelledby="g2Label">
+          <button type="button" class="btn" id="g2X0" data-g2="X0">0번에 X</button>
+          <button type="button" class="btn" id="g2X1" data-g2="X1">1번에 X</button>
+          <button type="button" class="btn" id="g2H0" data-g2="H0">0번에 H</button>
+          <button type="button" class="btn" id="g2H1" data-g2="H1">1번에 H</button>
+        </div>
+        <div class="gates">
+          <button type="button" class="btn small" id="g2Undo">되돌리기</button>
+          <button type="button" class="btn small" id="g2Clear">지우기</button>
+        </div>
+        <p class="rule" id="g2Rule" aria-live="polite"></p>
+        <button type="button" class="btn primary" id="g2Draw" hidden>1,000번 측정하기</button>
+      </div>
       <div class="ctl" id="ctlDraws">
         <div class="draws" id="draws">
           <button type="button" class="btn" id="drawOne">1번 뽑기</button>
@@ -672,7 +718,7 @@ footer p { margin: 0; }
 
   </main>
 
-  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 7까지 만들어져 있어요.</p></footer>
+  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 8까지 만들어져 있어요.</p></footer>
 </div>
 
 <script>
@@ -682,8 +728,8 @@ footer p { margin: 0; }
   const hide = (el, off) => { if (off) el.setAttribute('hidden', ''); else el.removeAttribute('hidden'); };
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const SQ = Math.SQRT1_2, RAD = Math.PI / 180;
-  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1', 3: 'qubit-quest-d3-v1', 4: 'qubit-quest-d4-v1', 5: 'qubit-quest-d5-v1', 6: 'qubit-quest-d6-v1', 7: 'qubit-quest-d7-v1' };
-  const BUILT = 7;
+  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1', 3: 'qubit-quest-d3-v1', 4: 'qubit-quest-d4-v1', 5: 'qubit-quest-d5-v1', 6: 'qubit-quest-d6-v1', 7: 'qubit-quest-d7-v1', 8: 'qubit-quest-d8-v1' };
+  const BUILT = 8;
   const CX = 150, CY = 128, R = 88;
 
   const tidy = v => {
@@ -1086,6 +1132,78 @@ footer p { margin: 0; }
   const fresh7 = () => ({ r1: false, r2: false, r3: false, r4: false, r5: false, r6: false, r7: false, r8: false, r9: false,
     m1: false, m2: false, m3: false, quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
 
+  /* ---------- Daily 8: 텐서곱과 두 큐비트. A two-qubit state is four real amplitudes [|00>, |01>, |10>, |11>] ---------- */
+  const ONE8 = [[1, 0], [0, 1], [SQ, SQ]], ONE8N = ['|0>', '|1>', '|+>'];
+  const kron2 = (u, v) => [u[0] * v[0], u[0] * v[1], u[1] * v[0], u[1] * v[1]].map(tidy);
+  function gate8(st, g) {
+    const q = Number(g[1]), m = q === 0 ? 1 : 2, out = st.slice();
+    for (let k = 0; k < 4; k++) {
+      if (k & m) continue;
+      const a = st[k], b = st[k | m];
+      if (g[0] === 'X') { out[k] = b; out[k | m] = a; }
+      else { out[k] = tidy(SQ * (a + b)); out[k | m] = tidy(SQ * (a - b)); }
+    }
+    return out;
+  }
+  const run8 = seq => seq.reduce(gate8, [1, 0, 0, 0]);
+  const same4 = (a, b) => a.every((x, k) => Math.abs(x - b[k]) < 1e-9);
+  const LAB4 = ['00', '01', '10', '11'];
+  function ket8(v) {
+    const parts = v.map((x, k) => [x, k]).filter(([x]) => Math.abs(x) > 1e-9);
+    if (!parts.length) return '0';
+    return parts.map(([x, k], j) => {
+      const neg = x < 0, mag = Math.abs(x), c = Math.abs(mag - 1) < 1e-9 ? '' : num(mag, 3);
+      return (j ? (neg ? ' - ' : ' + ') : (neg ? '-' : '')) + c + `|${LAB4[k]}>`;
+    }).join('');
+  }
+
+  const STAGES8 = [
+    { name: '텐서곱',
+      intro: '2주 차는 큐비트 두 개예요. 큐비트 두 개를 측정하면 결과가 00, 01, 10, 11 네 가지라서 진폭도 네 개예요. 큐비트 하나씩의 상태를 텐서곱(⊗)으로 곱하면 네 진폭이 나와요. <code>[a, b] ⊗ [c, d] = [ac, ad, bc, bd]</code>. 두 큐비트의 상태를 골라 보세요.',
+      goals: [
+        { text: '<code>|10&gt;</code> 만들기', done: f => f.k1 },
+        { text: '<code>0.707|00&gt; + 0.707|10&gt;</code> 만들기', done: f => f.k2 },
+        { text: '네 진폭을 모두 0.5로 만들기', done: f => f.k3 }] },
+    { name: '오른쪽이 0번',
+      intro: 'Qiskit에서 큐비트에는 0번, 1번 번호가 붙어요. 그런데 결과 이름 <code>01</code>에서 어느 글자가 0번 큐비트일까요? 이번에는 X만 써서 직접 확인해 보세요.',
+      predict: { label: '|00>에서 0번 큐비트에만 X를 걸면, 결과 이름은?', key: 'o0', lock: f => f.oSeen,
+        opts: [['r01', '01'], ['r10', '10']] },
+      goals: [
+        { text: '결과 예측하기', done: f => !!f.o0 },
+        { text: '<code>|01&gt;</code> 만들기', done: f => f.o1 },
+        { text: '<code>|10&gt;</code>과 <code>|11&gt;</code> 만들기', done: f => f.o2 && f.o3 }] },
+    { name: '한 큐비트에만 게이트',
+      intro: '게이트를 한 큐비트에만 걸면, 그 큐비트 글자만 갈라져요. 0번에 H를 걸면 오른쪽 글자가, 1번에 H를 걸면 왼쪽 글자가 0과 1로 갈라져요. 행렬로는 0번에 H가 <code>I ⊗ H</code>, 1번에 H가 <code>H ⊗ I</code>예요.',
+      goals: [
+        { text: '<code>0.707|00&gt; + 0.707|01&gt;</code> 만들기', done: f => f.h1 },
+        { text: '<code>0.707|00&gt; + 0.707|10&gt;</code> 만들기', done: f => f.h2 },
+        { text: '네 진폭을 모두 0.5로 만들기', done: f => f.h3 }] },
+    { name: '두 큐비트 측정',
+      intro: '이제 1,000번 측정해 봐요. 결과 이름은 늘 두 글자이고, 오른쪽이 0번 큐비트예요. 회로를 만들고 측정해서 목표대로 나오는지 확인해 보세요.',
+      goals: [
+        { text: '1,000번 모두 <code>11</code>이 나오게 하기', done: f => f.n1 },
+        { text: '<code>01</code>과 <code>11</code> 두 가지만 반반씩 나오게 하기', done: f => f.n2 },
+        { text: '네 결과가 모두 나오게 하기', done: f => f.n3 }] },
+    { name: 'Daily 8 보스',
+      intro: '배운 내용을 확인하는 문제 다섯 개예요. 모두 맞히면 Daily 8 클리어예요.',
+      goals: [{ text: '문제 5개 모두 맞히기', done: f => f.quiz }] }
+  ];
+  const QUIZ8 = [
+    { q: '큐비트 두 개의 상태 벡터에는 진폭이 몇 개 있을까요?', opts: ['2개', '3개', '4개', '8개'], a: 2,
+      why: '결과가 00, 01, 10, 11 네 가지라 진폭도 네 개예요.' },
+    { q: '<code>[1, 0] ⊗ [0, 1]</code>은?', opts: ['[0, 1, 0, 0]', '[0, 0, 1, 0]', '[1, 0, 0, 1]', '[1, 1]'], a: 0,
+      why: '[1×0, 1×1, 0×0, 0×1] = [0, 1, 0, 0]. 이름으로는 |01>이에요.' },
+    { q: 'Qiskit에서 <code>|00&gt;</code>의 0번 큐비트에만 X를 걸면 결과 이름은?', opts: ['10', '01', '11'], a: 1,
+      why: 'Qiskit은 오른쪽 글자가 0번 큐비트예요. 이진수의 1의 자리와 같아요.' },
+    { q: 'Qiskit 순서로 0번 큐비트에 H를 거는 4x4 행렬은?', opts: ['H ⊗ I', 'I ⊗ H', 'H ⊗ H'], a: 1,
+      why: '(1번) ⊗ (0번) 순서라서 0번의 게이트가 오른쪽에 와요. 1번에는 아무것도 안 하니 I예요.' },
+    { q: '0번에 H, 1번에 H를 걸고 1,000번 측정하면?', opts: ['00만 나온다', '00과 11이 반반', '네 결과가 250번 안팎씩'], a: 2,
+      why: '|+> ⊗ |+> = [0.5, 0.5, 0.5, 0.5]. 네 결과가 각각 25%예요.' }
+  ];
+  const fresh8 = () => ({ k1: false, k2: false, k3: false, o0: '', oSeen: false, o1: false, o2: false, o3: false,
+    h1: false, h2: false, h3: false, n1: false, n2: false, n3: false,
+    quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
+
   const LEVELS = {
     1: { title: '큐비트와 측정', stages: STAGES1, quiz: QUIZ1, fresh: fresh1, touched: f => f.s0 > 0,
       learned: [
@@ -1142,7 +1260,15 @@ footer p { margin: 0; }
         '위상: 바로 측정하면 보이지 않지만 H 사이에서 확률로 드러난다.',
         '유니터리: 게이트는 U†U = I인 행렬이고, 여러 게이트는 행렬 하나로 줄일 수 있다.',
         '1주 차 끝. 다음 주부터는 큐비트가 두 개가 된다.'],
-      next: 'Daily 8은 텐서곱과 두 큐비트예요. 아직 준비 중이에요.' }
+      next: 'Daily 8이 열렸어요. 2주 차 시작, 텐서곱과 두 큐비트예요.' },
+    8: { title: '텐서곱과 두 큐비트', stages: STAGES8, quiz: QUIZ8, fresh: fresh8, touched: f => f.k1 || f.k2 || f.k3 || !!f.o0,
+      learned: [
+        '큐비트 두 개의 상태는 진폭 네 개짜리 벡터다. 순서는 |00>, |01>, |10>, |11>.',
+        '텐서곱: [a, b] ⊗ [c, d] = [ac, ad, bc, bd]. 순서를 바꾸면 다른 상태다.',
+        'Qiskit은 오른쪽 글자가 0번 큐비트다. 그래서 np.kron(1번, 0번) 순서로 적는다.',
+        '한 큐비트에만 거는 게이트도 4x4 행렬이다. 0번에 H는 I ⊗ H.',
+        '측정 결과 이름도 오른쪽이 0번 큐비트다.'],
+      next: 'Daily 9는 2큐비트 게이트 CNOT, CZ, SWAP이에요. 아직 준비 중이에요.' }
   };
 
   const WEEKS = ['1주 · 한 큐비트', '2주 · 여러 큐비트와 얽힘', '3주 · 회로와 프로토콜', '4주 · 첫 알고리즘', '5주 · 다음 알고리즘'];
@@ -1160,12 +1286,12 @@ footer p { margin: 0; }
   const LOCK = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" rx="1.2" fill="currentColor"></rect><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>';
 
   /* ---------- progress: one record per day, plus what is on screen right now ---------- */
-  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() }, 3: { stage: 0, f: fresh3() }, 4: { stage: 0, f: fresh4() }, 5: { stage: 0, f: fresh5() }, 6: { stage: 0, f: fresh6() }, 7: { stage: 0, f: fresh7() } };
+  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() }, 3: { stage: 0, f: fresh3() }, 4: { stage: 0, f: fresh4() }, 5: { stage: 0, f: fresh5() }, 6: { stage: 0, f: fresh6() }, 7: { stage: 0, f: fresh7() }, 8: { stage: 0, f: fresh8() } };
   let day = 1, S = P[1], LV = LEVELS[1];
   const freshT = () => ({ deg: 0, circuit: [], tape: [], counts: null, note: '', rule: '',
     wrong: LV.quiz.map(() => []), x: 2, y: 1, rot: 0, ph: 0, p: 50, a10: 10, sgn: 1, nx: 2, ny: 1, normed: false,
     bq: 0, guess: 500, runs: {}, col: null, rep: 0, mid: false,
-    gt: 'Z', st: 0, dm: 0, tr: false, cj: false, um: 0, uc: false, pg: 'Z', tg: 0 });
+    gt: 'Z', st: 0, dm: 0, tr: false, cj: false, um: 0, uc: false, pg: 'Z', tg: 0, t1: 0, t0: 0, g8: [], k8: null });
   let T = freshT();
   let view = 'home';
 
@@ -1930,6 +2056,64 @@ footer p { margin: 0; }
     changed();
     render(true);
   }
+  /* ---------- Daily 8 actions ---------- */
+  function d8() {
+    const v = S.stage === 0 ? kron2(ONE8[T.t1], ONE8[T.t0]) : run8(T.g8);
+    return { v, p: v.map(x => x * x) };
+  }
+  function note8() {
+    const f = S.f, i = S.stage, v = d8().v, say = [];
+    T.note = '';
+    if (i === 0) {
+      if (same4(v, [0, 0, 1, 0])) { f.k1 = true; say.push('<code>|1&gt; ⊗ |0&gt; = [0×1, 0×0, 1×1, 1×0] = [0, 0, 1, 0]</code>. 1번 큐비트가 왼쪽 글자라서 이름은 <code>|10&gt;</code>이에요.'); }
+      if (same4(v, [SQ, 0, SQ, 0])) { f.k2 = true; say.push('1번 큐비트가 <code>|+&gt;</code>라서 왼쪽 글자만 0과 1로 갈라졌어요. 오른쪽 글자는 늘 0이에요.'); }
+      if (same4(v, [0.5, 0.5, 0.5, 0.5])) { f.k3 = true; say.push('<code>|+&gt; ⊗ |+&gt;</code>는 네 진폭이 모두 0.707 × 0.707 = 0.5예요. 네 결과가 25%씩이에요.'); }
+      if (same4(v, [0, 1, 0, 0]) && !f.k1) say.push('<code>|01&gt;</code>이에요. 목표 <code>|10&gt;</code>과 글자 순서가 반대예요. 두 큐비트를 바꿔 보세요.');
+      if (same4(v, [SQ, SQ, 0, 0]) && !f.k2) say.push('오른쪽 글자가 갈라졌어요. 목표는 왼쪽 글자가 갈라지는 상태예요. 텐서곱은 순서가 중요해요.');
+    } else if (i === 1) {
+      if (T.g8.length && !f.oSeen) {
+        f.oSeen = true;
+        if (T.g8[0] === 'X0') say.push(f.o0 === 'r01' ? '예측이 맞았어요. 0번 큐비트가 오른쪽 글자예요.' : '예측은 10이었죠. 실제로는 01이에요. Qiskit은 오른쪽 글자가 0번 큐비트예요.');
+      }
+      if (same4(v, [0, 1, 0, 0])) { f.o1 = true; say.push('<code>|01&gt;</code>이에요. 0번 큐비트가 1이 되면 오른쪽 글자가 1이 돼요. 이진수 01은 1이라서, 칸 번호도 1번이에요.'); }
+      if (same4(v, [0, 0, 1, 0])) { f.o2 = true; say.push('<code>|10&gt;</code>이에요. 1번 큐비트가 왼쪽 글자예요. 이진수 10은 2라서 칸 번호 2번이에요.'); }
+      if (same4(v, [0, 0, 0, 1])) { f.o3 = true; say.push('<code>|11&gt;</code>이에요. 두 큐비트 모두 1이에요. 칸 번호 3번이에요.'); }
+    } else if (i === 2) {
+      if (same4(v, [SQ, SQ, 0, 0])) { f.h1 = true; say.push('0번에 H를 걸어서 오른쪽 글자만 갈라졌어요. 행렬로는 <code>I ⊗ H</code>를 곱한 것이에요.'); }
+      if (same4(v, [SQ, 0, SQ, 0])) { f.h2 = true; say.push('1번에 H를 걸어서 왼쪽 글자만 갈라졌어요. 행렬로는 <code>H ⊗ I</code>예요.'); }
+      if (same4(v, [0.5, 0.5, 0.5, 0.5])) { f.h3 = true; say.push('두 큐비트 모두 H를 걸면 <code>H ⊗ H</code>. 네 진폭이 모두 0.5예요.'); }
+    }
+    T.note = say.map(t => `<p>${t}</p>`).join('');
+  }
+  function draw8() {
+    const f = S.f, p = d8().p, k = [0, 0, 0, 0];
+    for (let n = 0; n < 1000; n++) {
+      let r = Math.random(), j = 0;
+      while (j < 3 && r >= p[j]) { r -= p[j]; j++; }
+      k[j]++;
+    }
+    T.k8 = k;
+    const seen = k.map((c, j) => [c, j]).filter(([c]) => c > 0);
+    const say = [`<p>${seen.map(([c, j]) => `<code>${LAB4[j]}</code> ${big(c)}번`).join(', ')}이 나왔어요.</p>`];
+    if (k[3] === 1000) { f.n1 = true; say.push('<p>두 큐비트가 모두 1이라 <code>11</code>만 나와요.</p>'); }
+    if (p[0] < 1e-9 && p[2] < 1e-9 && Math.abs(p[1] - 0.5) < 1e-9) { f.n2 = true; say.push('<p>0번 큐비트는 늘 1이라 오른쪽 글자가 늘 1이에요. 1번 큐비트만 반반이에요.</p>'); }
+    if (k.every(c => c > 0)) { f.n3 = true; say.push('<p>네 결과가 모두 나왔어요. 두 큐비트가 각자 반반이면 네 결과가 25%씩이에요.</p>'); }
+    T.note = say.join('');
+    render();
+  }
+  function g8act(g) {
+    if (g === 'undo') T.g8.pop();
+    else if (g === 'clear') T.g8 = [];
+    else {
+      if (S.stage === 1 && !S.f.o0) { $('g2Rule').textContent = '먼저 위에서 예측을 골라 주세요.'; return; }
+      if (T.g8.length >= 6) { $('g2Rule').textContent = '게이트는 6개까지 걸 수 있어요.'; return; }
+      T.g8.push(g);
+    }
+    T.k8 = null;
+    note8();
+    render(true);
+  }
+
   /* ---------- Daily 7 actions ---------- */
   function note7() {
     const f = S.f, i = S.stage, c = T.circuit, d = d7(), n = c.length;
@@ -2355,7 +2539,27 @@ footer p { margin: 0; }
     if (i === 1) lines.push('# 보른 규칙: 확률 = 진폭 크기의 제곱', 'print(Statevector(qc).probabilities().round(3))');
     return lines.join('\n');
   }
-  const codeNow = () => (day === 1 ? codeText() : day === 2 ? codeText2() : day === 3 ? codeText3() : day === 4 ? codeText4() : day === 5 ? codeText5() : day === 6 ? codeText6() : codeText7());
+  function codeText8() {
+    const i = S.stage, d = d8();
+    if (i === 0) {
+      const nm = ['ket0', 'ket1', 'plus'], used = [...new Set([nm[T.t1], nm[T.t0]])];
+      const def = { ket0: 'ket0 = np.array([1, 0])', ket1: 'ket1 = np.array([0, 1])', plus: 'plus = np.array([1, 1]) / np.sqrt(2)' };
+      return ['import numpy as np', '', ...used.map(k => def[k]), '# 텐서곱: (1번 큐비트) ⊗ (0번 큐비트)', `state = np.kron(${nm[T.t1]}, ${nm[T.t0]})`,
+        `# 약 [${d.v.map(x => num(x, 3)).join(', ')}]`, 'print(state.round(3))'].join('\n');
+    }
+    const lines = ['from qiskit import QuantumCircuit'];
+    lines.push(i === 3 ? 'from qiskit_aer import AerSimulator' : 'from qiskit.quantum_info import Statevector', '', `qc = QuantumCircuit(2${i === 3 ? ', 2' : ''})`);
+    T.g8.forEach(g => lines.push(`qc.${g[0].toLowerCase()}(${g[1]})`));
+    if (i === 3) {
+      const pd = d.p.map((x, k) => [x, LAB4[k]]).filter(([x]) => x > 1e-9).map(([x, l]) => `'${l}': ${num(x, 2)}`).join(', ');
+      lines.push('# 0번 큐비트 -> 0번 칸, 1번 큐비트 -> 1번 칸', 'qc.measure([0, 1], [0, 1])', '',
+        'counts = AerSimulator().run(qc, shots=1000).result().get_counts()', `# 확률 {${pd}}. 이름은 오른쪽이 0번`, 'print(counts)');
+    } else {
+      lines.push(`# 약 [${d.v.map(x => num(x, 3)).join(', ')}]`, 'print(Statevector(qc).data.real.round(3))');
+    }
+    return lines.join('\n');
+  }
+  const codeNow = () => (day === 1 ? codeText() : day === 2 ? codeText2() : day === 3 ? codeText3() : day === 4 ? codeText4() : day === 5 ? codeText5() : day === 6 ? codeText6() : day === 7 ? codeText7() : codeText8());
 
   function renderHome() {
     const n = focusDay(), lv = LEVELS[n], f = P[n].f;
@@ -2826,6 +3030,45 @@ footer p { margin: 0; }
     $('code').textContent = codeText7();
   }
 
+  const DAY8_ONLY = ['ctlTen', 'ctlG2'];
+  function boardD8(i) {
+    const d = d8(), f = S.f;
+    const mark = (root, attr, val) => $(root).querySelectorAll(`[${attr}]`).forEach(b => b.setAttribute('aria-pressed', String(b.getAttribute(attr) === String(val))));
+    hide($('dial'), true); hide($('viz'), true);
+    $('kv').hidden = true;
+    ['ctlSlider', 'ctlXY', 'ctlRot', 'ctlPh', 'ctlProb', 'ctlAmp', 'ctlNorm', 'ctlMul', 'ctlDag', 'ctlUni', 'ctlPhase', 'ctlTarget', 'ctlGates', 'ctlDraws'].concat(DAY4_ONLY).forEach(id => { $(id).hidden = true; });
+    $('ctlTen').hidden = i !== 0; $('ctlG2').hidden = i === 0;
+    $('mboard').hidden = false;
+    ['stateRow', 'ketLine', 'rowP0', 'rowP1', 'sumLine'].forEach(id => { $(id).hidden = true; });
+
+    const rows = d.v.map((x, k) => {
+      const l = LAB4[k], pc = (d.p[k] * 100).toFixed(1);
+      return `<div class="a4${Math.abs(x) < 1e-9 ? ' zero' : ''}" id="a4r${k}"><span class="kk" aria-label="결과 ${l}">|<span class="q1">${l[0]}</span><span class="q0">${l[1]}</span>&gt;</span>` +
+        `<div class="track" aria-hidden="true"><div class="fill" style="width:${pc}%"></div></div><span class="av" id="a4v${k}">${num(x, 3)} · ${pc}%</span>` +
+        (T.k8 ? `<span class="ct" id="a4c${k}">1,000번 중 ${big(T.k8[k])}번</span>` : '') + '</div>';
+    }).join('');
+    let top = '';
+    if (i === 0) {
+      const u = ONE8[T.t1], w = ONE8[T.t0];
+      top = `<p class="kron" id="kron">${ONE8N[T.t1]} ⊗ ${ONE8N[T.t0]} = [${num(u[0], 3)}×${num(w[0], 3)}, ${num(u[0], 3)}×${num(w[1], 3)}, ${num(u[1], 3)}×${num(w[0], 3)}, ${num(u[1], 3)}×${num(w[1], 3)}]</p>`;
+      mark('ctlTen', 'data-t1', T.t1); mark('ctlTen', 'data-t0', T.t0);
+    } else {
+      top = `<p class="mform"><span class="k">회로</span><code id="c8">${T.g8.length ? T.g8.map(g => `${g[0]}(${g[1]}번)`).join(' → ') : '|00&gt;에서 시작'}</code></p>`;
+      $('g2H0').hidden = i === 1; $('g2H1').hidden = i === 1;
+      $('g2Undo').disabled = !T.g8.length; $('g2Clear').disabled = !T.g8.length;
+      $('g2Draw').hidden = i !== 3;
+      const wait = i === 1 && !f.o0;
+      ['g2X0', 'g2X1', 'g2H0', 'g2H1'].forEach(id => { $(id).disabled = wait; });
+      $('g2Rule').textContent = wait ? '먼저 위에서 예측을 골라 주세요.' : i === 3 ? '회로를 만든 뒤 1,000번 측정해 보세요.' : 'X는 그 큐비트의 0과 1을 바꾸고, H는 반반으로 갈라요.';
+    }
+    $('mboard').innerHTML = `${top}<p class="qkey">이름의 <span class="q1">왼쪽 글자는 1번</span>, <span class="q0">오른쪽 글자는 0번</span> 큐비트예요.</p>` +
+      `<div class="amp4" role="group" aria-label="네 결과의 진폭과 확률">${rows}</div><p class="mcap sub" id="ket8">${esc(ket8(d.v))}</p>`;
+    renderResult(i, false);
+    $('codeTitle').textContent = i === 0 ? '같은 계산을 NumPy로' : '같은 회로를 Qiskit으로';
+    $('codeLead').textContent = '지금 화면의 계산을 파이썬 코드로 쓰면 이렇게 돼요.';
+    $('code').textContent = codeText8();
+  }
+
   function render(snap) {
     $('home').hidden = view !== 'home';
     $('play').hidden = view !== 'play';
@@ -2873,8 +3116,9 @@ footer p { margin: 0; }
     $('stateRow').hidden = false;
     if (day !== 5) DAY5_ONLY.forEach(id => { $(id).hidden = true; });
     if (day !== 6) DAY6_ONLY.forEach(id => { $(id).hidden = true; });
-    if (day !== 5 && day !== 7) $('mboard').hidden = true;
-    if (day === 1) boardD1(i, snap); else if (day === 2) boardD2(i); else if (day === 3) boardD3(i, snap); else if (day === 4) boardD4(i, snap); else if (day === 5) boardD5(i); else if (day === 6) boardD6(i); else boardD7(i);
+    if (day !== 5 && day !== 7 && day !== 8) $('mboard').hidden = true;
+    if (day !== 8) DAY8_ONLY.forEach(id => { $(id).hidden = true; });
+    if (day === 1) boardD1(i, snap); else if (day === 2) boardD2(i); else if (day === 3) boardD3(i, snap); else if (day === 4) boardD4(i, snap); else if (day === 5) boardD5(i); else if (day === 6) boardD6(i); else if (day === 7) boardD7(i); else boardD8(i);
   }
 
   /* ---------- views: the start screen, and each day at #daily-N ---------- */
@@ -2991,6 +3235,18 @@ footer p { margin: 0; }
     render(true);
   });
   $('uniBtn').addEventListener('click', checkUni);
+  $('ctlTen').addEventListener('click', e => {
+    const a = e.target.closest('[data-t1]'), b = e.target.closest('[data-t0]');
+    if (a) T.t1 = Number(a.dataset.t1); else if (b) T.t0 = Number(b.dataset.t0); else return;
+    note8(); render(true);
+  });
+  $('ctlG2').addEventListener('click', e => {
+    const b = e.target.closest('[data-g2]');
+    if (b && !b.disabled) g8act(b.dataset.g2);
+  });
+  $('g2Undo').addEventListener('click', () => g8act('undo'));
+  $('g2Clear').addEventListener('click', () => g8act('clear'));
+  $('g2Draw').addEventListener('click', draw8);
   $('ctlPhase').addEventListener('click', e => {
     const b = e.target.closest('[data-pg]');
     if (!b || b.disabled) return;
@@ -3086,12 +3342,14 @@ footer p { margin: 0; }
       T.tr = data.T.tr === true; T.cj = data.T.cj === true;
       if (['Z', 'S', 'T'].includes(data.T.pg)) T.pg = data.T.pg;
       T.tg = clamp(Math.round(Number(data.T.tg)) || 0, 0, TARGETS6.length - 1);
+      T.t1 = clamp(Math.round(Number(data.T.t1)) || 0, 0, 2); T.t0 = clamp(Math.round(Number(data.T.t0)) || 0, 0, 2);
+      T.g8 = (Array.isArray(data.T.g8) ? data.T.g8 : []).filter(g => ['X0', 'X1', 'H0', 'H1'].includes(g)).slice(0, 6);
     }
     if (r.blocked) $('dayHint').textContent = blockedHint(r.blocked);
     render(true);
   }
   const hot = window.claude && window.claude.hot;
-  if (hot && hot.snapshot) hot.snapshot(() => ({ P, day, T: { deg: T.deg, circuit: T.circuit, x: T.x, y: T.y, rot: T.rot, ph: T.ph, p: T.p, a10: T.a10, sgn: T.sgn, nx: T.nx, ny: T.ny, bq: T.bq, guess: T.guess, gt: T.gt, st: T.st, dm: T.dm, um: T.um, tr: T.tr, cj: T.cj, pg: T.pg, tg: T.tg } }));
+  if (hot && hot.snapshot) hot.snapshot(() => ({ P, day, T: { deg: T.deg, circuit: T.circuit, x: T.x, y: T.y, rot: T.rot, ph: T.ph, p: T.p, a10: T.a10, sgn: T.sgn, nx: T.nx, ny: T.ny, bq: T.bq, guess: T.guess, gt: T.gt, st: T.st, dm: T.dm, um: T.um, tr: T.tr, cj: T.cj, pg: T.pg, tg: T.tg, t1: T.t1, t0: T.t0, g8: T.g8 } }));
   if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();
 </script>
