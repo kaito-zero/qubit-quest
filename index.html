@@ -386,7 +386,7 @@ footer p { margin: 0; }
     </div>
     <div class="journey panel">
       <h2>Daily 1부터 Daily 30까지</h2>
-      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 9부터는 준비되는 대로 추가돼요.</p>
+      <p class="hint" id="dayHint" aria-live="polite">앞의 판을 클리어하면 다음 판이 열려요. Daily 10부터는 준비되는 대로 추가돼요.</p>
       <div id="weeks"></div>
     </div>
   </section>
@@ -664,6 +664,10 @@ footer p { margin: 0; }
           <button type="button" class="btn" id="g2X1" data-g2="X1">1번에 X</button>
           <button type="button" class="btn" id="g2H0" data-g2="H0">0번에 H</button>
           <button type="button" class="btn" id="g2H1" data-g2="H1">1번에 H</button>
+          <button type="button" class="btn" id="g2C01" data-g2="C01" hidden>CNOT 0→1</button>
+          <button type="button" class="btn" id="g2C10" data-g2="C10" hidden>CNOT 1→0</button>
+          <button type="button" class="btn" id="g2CZ" data-g2="CZ" hidden>CZ</button>
+          <button type="button" class="btn" id="g2SW" data-g2="SW" hidden>SWAP</button>
         </div>
         <div class="gates">
           <button type="button" class="btn small" id="g2Undo">되돌리기</button>
@@ -718,7 +722,7 @@ footer p { margin: 0; }
 
   </main>
 
-  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 8까지 만들어져 있어요.</p></footer>
+  <footer><p>공부한 내용이 하루에 한 판씩 추가돼요. 지금은 Daily 9까지 만들어져 있어요.</p></footer>
 </div>
 
 <script>
@@ -728,8 +732,8 @@ footer p { margin: 0; }
   const hide = (el, off) => { if (off) el.setAttribute('hidden', ''); else el.removeAttribute('hidden'); };
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
   const SQ = Math.SQRT1_2, RAD = Math.PI / 180;
-  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1', 3: 'qubit-quest-d3-v1', 4: 'qubit-quest-d4-v1', 5: 'qubit-quest-d5-v1', 6: 'qubit-quest-d6-v1', 7: 'qubit-quest-d7-v1', 8: 'qubit-quest-d8-v1' };
-  const BUILT = 8;
+  const KEYS = { 1: 'qubit-quest-v1', 2: 'qubit-quest-d2-v1', 3: 'qubit-quest-d3-v1', 4: 'qubit-quest-d4-v1', 5: 'qubit-quest-d5-v1', 6: 'qubit-quest-d6-v1', 7: 'qubit-quest-d7-v1', 8: 'qubit-quest-d8-v1', 9: 'qubit-quest-d9-v1' };
+  const BUILT = 9;
   const CX = 150, CY = 128, R = 88;
 
   const tidy = v => {
@@ -1136,7 +1140,12 @@ footer p { margin: 0; }
   const ONE8 = [[1, 0], [0, 1], [SQ, SQ]], ONE8N = ['|0>', '|1>', '|+>'];
   const kron2 = (u, v) => [u[0] * v[0], u[0] * v[1], u[1] * v[0], u[1] * v[1]].map(tidy);
   function gate8(st, g) {
-    const q = Number(g[1]), m = q === 0 ? 1 : 2, out = st.slice();
+    const out = st.slice();
+    if (g === 'C01') { out[1] = st[3]; out[3] = st[1]; return out; }
+    if (g === 'C10') { out[2] = st[3]; out[3] = st[2]; return out; }
+    if (g === 'CZ') { out[3] = tidy(-st[3] + 0); return out; }
+    if (g === 'SW') { out[1] = st[2]; out[2] = st[1]; return out; }
+    const q = Number(g[1]), m = q === 0 ? 1 : 2;
     for (let k = 0; k < 4; k++) {
       if (k & m) continue;
       const a = st[k], b = st[k | m];
@@ -1148,6 +1157,9 @@ footer p { margin: 0; }
   const run8 = seq => seq.reduce(gate8, [1, 0, 0, 0]);
   const same4 = (a, b) => a.every((x, k) => Math.abs(x - b[k]) < 1e-9);
   const LAB4 = ['00', '01', '10', '11'];
+  const G2NAME = { X0: 'X(0번)', X1: 'X(1번)', H0: 'H(0번)', H1: 'H(1번)', C01: 'CNOT(0→1)', C10: 'CNOT(1→0)', CZ: 'CZ', SW: 'SWAP' };
+  const G2CODE = { X0: 'qc.x(0)', X1: 'qc.x(1)', H0: 'qc.h(0)', H1: 'qc.h(1)', C01: 'qc.cx(0, 1)', C10: 'qc.cx(1, 0)', CZ: 'qc.cz(0, 1)', SW: 'qc.swap(0, 1)' };
+  const G2ALL = Object.keys(G2NAME);
   function ket8(v) {
     const parts = v.map((x, k) => [x, k]).filter(([x]) => Math.abs(x) > 1e-9);
     if (!parts.length) return '0';
@@ -1202,6 +1214,54 @@ footer p { margin: 0; }
   ];
   const fresh8 = () => ({ k1: false, k2: false, k3: false, o0: '', oSeen: false, o1: false, o2: false, o3: false,
     h1: false, h2: false, h3: false, n1: false, n2: false, n3: false,
+    quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
+
+  /* ---------- Daily 9: 2큐비트 게이트. Reuses the Daily 8 board ---------- */
+  const STAGES9 = [
+    { name: 'CNOT 진리표',
+      intro: 'CNOT은 큐비트 두 개에 함께 거는 게이트예요. 제어 큐비트가 1일 때만 타깃 큐비트를 뒤집어요(X). 여기서는 제어가 0번(오른쪽 글자), 타깃이 1번(왼쪽 글자)이에요. 입력을 골라 출력을 확인해 보세요.',
+      predict: { label: '|01>에 CNOT(제어 0번, 타깃 1번)을 걸면 결과는?', key: 'c0', lock: f => f.cSeen,
+        opts: [['s01', '01 그대로'], ['s11', '11'], ['s10', '10']] },
+      goals: [
+        { text: '결과 예측하기', done: f => !!f.c0 },
+        { text: '제어가 1인 입력 두 개 확인하기', done: f => f.e1 && f.e3 },
+        { text: '네 가지 입력 모두 확인하기', done: f => f.e0 && f.e1 && f.e2 && f.e3 }] },
+    { name: 'CNOT 방향',
+      intro: 'CNOT은 방향이 있어요. CNOT 0→1은 0번이 제어, CNOT 1→0은 1번이 제어예요. X와 CNOT만으로 목표를 만들어 보세요.',
+      goals: [
+        { text: '게이트 2개로 <code>|11&gt;</code> 만들기', done: f => f.d1 },
+        { text: '두 방향 CNOT을 모두 써서 <code>|01&gt;</code> 만들기', done: f => f.d2 },
+        { text: '<code>|00&gt;</code>에 CNOT만 걸어 아무것도 안 바뀌는 것 확인하기', done: f => f.d3 }] },
+    { name: 'CZ와 위상',
+      intro: 'CZ는 두 큐비트가 모두 1일 때만, 즉 <code>|11&gt;</code> 칸의 부호만 뒤집어요. 확률은 그대로라 위상 게이트예요. 어느 쪽이 제어인지 구별도 없어요.',
+      goals: [
+        { text: '<code>0.5|00&gt; + 0.5|01&gt; + 0.5|10&gt; - 0.5|11&gt;</code> 만들기', done: f => f.z1 },
+        { text: '<code>-|11&gt;</code> 만들기', done: f => f.z2 },
+        { text: 'CNOT 없이, X는 한 번만 써서 <code>|11&gt;</code> 만들기 (힌트: H로 CZ 감싸기)', done: f => f.z3 }] },
+    { name: 'SWAP',
+      intro: 'SWAP은 두 큐비트를 통째로 맞바꿔요. <code>|01&gt;</code>이 <code>|10&gt;</code>이 돼요. 놀랍게도 CNOT 세 개로 똑같이 만들 수 있어요.',
+      goals: [
+        { text: 'SWAP으로 <code>|01&gt;</code>을 <code>|10&gt;</code>으로 바꾸기', done: f => f.w1 },
+        { text: 'SWAP 없이 CNOT 세 개로 <code>|01&gt;</code>을 <code>|10&gt;</code>으로 바꾸기', done: f => f.w2 },
+        { text: 'SWAP으로 <code>0.707|00&gt; + 0.707|10&gt;</code> 만들기', done: f => f.w3 }] },
+    { name: 'Daily 9 보스',
+      intro: '배운 내용을 확인하는 문제 다섯 개예요. 모두 맞히면 Daily 9 클리어예요.',
+      goals: [{ text: '문제 5개 모두 맞히기', done: f => f.quiz }] }
+  ];
+  const QUIZ9 = [
+    { q: 'CNOT(제어 0번, 타깃 1번)을 <code>|01&gt;</code>에 걸면?', opts: ['01', '11', '10', '00'], a: 1,
+      why: '오른쪽 글자(0번, 제어)가 1이라 왼쪽 글자(1번, 타깃)가 뒤집혀요. 01 → 11.' },
+    { q: 'CNOT에서 제어 큐비트가 0이면?', opts: ['타깃은 그대로', '타깃이 뒤집힌다', '제어가 뒤집힌다'], a: 0,
+      why: '제어가 1일 때만 타깃에 X를 걸어요. 0이면 아무것도 안 해요.' },
+    { q: 'CZ를 <code>|11&gt;</code>에 걸면?', opts: ['|11>', '-|11>', '|00>'], a: 1,
+      why: 'CZ는 |11> 칸의 부호만 뒤집어요. 확률은 그대로예요.' },
+    { q: 'SWAP은 CNOT 몇 개로 만들 수 있을까요?', opts: ['2개', '3개', '4개'], a: 1,
+      why: 'CNOT 0→1, 1→0, 0→1 세 개예요. XOR 세 번으로 두 값을 맞바꾸는 것과 같아요.' },
+    { q: 'Qiskit의 <code>qc.cx(0, 1)</code>에서 제어 큐비트는?', opts: ['0번', '1번', '둘 다'], a: 0,
+      why: 'cx(제어, 타깃) 순서예요. 첫 번째 숫자가 제어예요.' }
+  ];
+  const fresh9 = () => ({ c0: '', cSeen: false, e0: false, e1: false, e2: false, e3: false, d1: false, d2: false, d3: false,
+    z1: false, z2: false, z3: false, w1: false, w2: false, w3: false,
     quiz: false, cleared: false, right: [false, false, false, false, false], mistakes: 0 });
 
   const LEVELS = {
@@ -1268,7 +1328,15 @@ footer p { margin: 0; }
         'Qiskit은 오른쪽 글자가 0번 큐비트다. 그래서 np.kron(1번, 0번) 순서로 적는다.',
         '한 큐비트에만 거는 게이트도 4x4 행렬이다. 0번에 H는 I ⊗ H.',
         '측정 결과 이름도 오른쪽이 0번 큐비트다.'],
-      next: 'Daily 9는 2큐비트 게이트 CNOT, CZ, SWAP이에요. 아직 준비 중이에요.' }
+      next: 'Daily 9가 열렸어요. 2큐비트 게이트 CNOT, CZ, SWAP이에요.' },
+    9: { title: '2큐비트 게이트', stages: STAGES9, quiz: QUIZ9, fresh: fresh9, touched: f => !!f.c0 || f.e0 || f.d1,
+      learned: [
+        'CNOT은 제어 큐비트가 1일 때만 타깃 큐비트를 뒤집는다.',
+        'CNOT은 방향이 있다. qc.cx(제어, 타깃)에서 첫 번째 숫자가 제어다.',
+        'CZ는 |11>의 부호만 뒤집는다. 제어와 타깃의 구별이 없다.',
+        '타깃을 H로 감싼 CZ는 CNOT과 같다.',
+        'SWAP은 두 큐비트를 맞바꾸고, CNOT 세 개로 만들 수 있다.'],
+      next: 'Daily 10은 얽힘과 벨 상태예요. 아직 준비 중이에요.' }
   };
 
   const WEEKS = ['1주 · 한 큐비트', '2주 · 여러 큐비트와 얽힘', '3주 · 회로와 프로토콜', '4주 · 첫 알고리즘', '5주 · 다음 알고리즘'];
@@ -1286,7 +1354,7 @@ footer p { margin: 0; }
   const LOCK = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="2" y="5.5" width="8" height="5.5" rx="1.2" fill="currentColor"></rect><path d="M4 5.5V4a2 2 0 0 1 4 0v1.5" fill="none" stroke="currentColor" stroke-width="1.4"></path></svg>';
 
   /* ---------- progress: one record per day, plus what is on screen right now ---------- */
-  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() }, 3: { stage: 0, f: fresh3() }, 4: { stage: 0, f: fresh4() }, 5: { stage: 0, f: fresh5() }, 6: { stage: 0, f: fresh6() }, 7: { stage: 0, f: fresh7() }, 8: { stage: 0, f: fresh8() } };
+  const P = { 1: { stage: 0, f: fresh1() }, 2: { stage: 0, f: fresh2() }, 3: { stage: 0, f: fresh3() }, 4: { stage: 0, f: fresh4() }, 5: { stage: 0, f: fresh5() }, 6: { stage: 0, f: fresh6() }, 7: { stage: 0, f: fresh7() }, 8: { stage: 0, f: fresh8() }, 9: { stage: 0, f: fresh9() } };
   let day = 1, S = P[1], LV = LEVELS[1];
   const freshT = () => ({ deg: 0, circuit: [], tape: [], counts: null, note: '', rule: '',
     wrong: LV.quiz.map(() => []), x: 2, y: 1, rot: 0, ph: 0, p: 50, a10: 10, sgn: 1, nx: 2, ny: 1, normed: false,
@@ -2058,10 +2126,39 @@ footer p { margin: 0; }
   }
   /* ---------- Daily 8 actions ---------- */
   function d8() {
-    const v = S.stage === 0 ? kron2(ONE8[T.t1], ONE8[T.t0]) : run8(T.g8);
+    const inp = kron2(ONE8[T.t1], ONE8[T.t0]);
+    const v = S.stage === 0 ? (day === 9 ? gate8(inp, 'C01') : inp) : run8(T.g8);
     return { v, p: v.map(x => x * x) };
   }
+  function note9() {
+    const f = S.f, i = S.stage, v = d8().v, say = [], g = T.g8, has = k => g.includes(k), b = k => same4(v, [0, 1, 2, 3].map(j => (j === k ? 1 : 0)));
+    T.note = '';
+    if (i === 0) {
+      const inp = 2 * T.t1 + T.t0, out = LAB4[v.findIndex(x => Math.abs(x) > 0.5)];
+      f['e' + inp] = true;
+      if (inp === 1 && !f.cSeen) {
+        f.cSeen = true;
+        say.push(f.c0 === 's11' ? '예측이 맞았어요.' : '예측과 달라요. 실제로는 11이에요.');
+      }
+      say.push(T.t0 ? `입력 <code>${LAB4[inp]}</code>: 제어(오른쪽 글자)가 1이라 타깃(왼쪽 글자)이 뒤집혀 <code>${out}</code>이 됐어요.`
+        : `입력 <code>${LAB4[inp]}</code>: 제어(오른쪽 글자)가 0이라 아무것도 안 바뀌었어요.`);
+    } else if (i === 1) {
+      if (b(3) && g.length === 2) { f.d1 = true; say.push('X로 제어를 1로 만든 뒤 CNOT으로 타깃을 뒤집었어요.'); }
+      if (b(1) && has('C01') && has('C10')) { f.d2 = true; say.push('두 방향 CNOT을 오가며 <code>|01&gt;</code>에 도착했어요. 방향마다 뒤집히는 글자가 달라요.'); }
+      if (b(0) && g.length && g.every(k => k[0] === 'C')) { f.d3 = true; say.push('<code>|00&gt;</code>은 제어가 0이라 CNOT을 몇 번 걸어도 그대로예요.'); }
+    } else if (i === 2) {
+      if (same4(v, [0.5, 0.5, 0.5, -0.5])) { f.z1 = true; say.push('확률은 넷 다 25% 그대로인데 <code>|11&gt;</code>의 부호만 바뀌었어요.'); }
+      if (same4(v, [0, 0, 0, -1])) { f.z2 = true; say.push('<code>-|11&gt;</code>이에요. 측정하면 <code>|11&gt;</code>과 구별되지 않아요. 위상만 다르니까요.'); }
+      if (b(3) && has('CZ') && !has('C01') && !has('C10') && g.filter(k => k[0] === 'X').length <= 1) { f.z3 = true; say.push('H로 감싼 CZ가 CNOT처럼 동작했어요. Day 6의 H·Z·H = X를 두 큐비트로 늘린 것이에요.'); }
+    } else if (i === 3) {
+      if (b(2) && has('SW') && g[0] === 'X0') { f.w1 = true; say.push('SWAP이 두 큐비트를 맞바꿨어요. 0번에 있던 1이 1번으로 옮겨 갔어요.'); }
+      if (g.join(',') === 'X0,C01,C10,C01') { f.w2 = true; say.push('CNOT 세 개가 SWAP과 같은 일을 했어요. 프로그래밍에서 XOR 세 번으로 두 값을 맞바꾸는 것과 같아요.'); }
+      if (same4(v, [SQ, 0, SQ, 0]) && has('SW')) { f.w3 = true; say.push('0번 큐비트의 중첩이 SWAP으로 1번 큐비트로 옮겨 갔어요.'); }
+    }
+    T.note = say.map(t => `<p>${t}</p>`).join('');
+  }
   function note8() {
+    if (day === 9) { note9(); return; }
     const f = S.f, i = S.stage, v = d8().v, say = [];
     T.note = '';
     if (i === 0) {
@@ -2105,8 +2202,9 @@ footer p { margin: 0; }
     if (g === 'undo') T.g8.pop();
     else if (g === 'clear') T.g8 = [];
     else {
-      if (S.stage === 1 && !S.f.o0) { $('g2Rule').textContent = '먼저 위에서 예측을 골라 주세요.'; return; }
-      if (T.g8.length >= 6) { $('g2Rule').textContent = '게이트는 6개까지 걸 수 있어요.'; return; }
+      if (day === 8 && S.stage === 1 && !S.f.o0) { $('g2Rule').textContent = '먼저 위에서 예측을 골라 주세요.'; return; }
+      const cap = day === 9 ? 8 : 6;
+      if (T.g8.length >= cap) { $('g2Rule').textContent = `게이트는 ${cap}개까지 걸 수 있어요.`; return; }
       T.g8.push(g);
     }
     T.k8 = null;
@@ -2541,6 +2639,16 @@ footer p { margin: 0; }
   }
   function codeText8() {
     const i = S.stage, d = d8();
+    if (day === 9) {
+      const lines = ['from qiskit import QuantumCircuit', 'from qiskit.quantum_info import Statevector', '', 'qc = QuantumCircuit(2)'];
+      if (i === 0) {
+        if (T.t0) lines.push('qc.x(0)');
+        if (T.t1) lines.push('qc.x(1)');
+        lines.push(`# 입력 ${LAB4[2 * T.t1 + T.t0]}. CNOT: 제어 0번, 타깃 1번`, 'qc.cx(0, 1)');
+      } else T.g8.forEach(g => lines.push(G2CODE[g]));
+      lines.push(`# 약 [${d.v.map(x => num(x, 3)).join(', ')}]`, 'print(Statevector(qc).data.real.round(3))');
+      return lines.join('\n');
+    }
     if (i === 0) {
       const nm = ['ket0', 'ket1', 'plus'], used = [...new Set([nm[T.t1], nm[T.t0]])];
       const def = { ket0: 'ket0 = np.array([1, 0])', ket1: 'ket1 = np.array([0, 1])', plus: 'plus = np.array([1, 1]) / np.sqrt(2)' };
@@ -3038,6 +3146,11 @@ footer p { margin: 0; }
     $('kv').hidden = true;
     ['ctlSlider', 'ctlXY', 'ctlRot', 'ctlPh', 'ctlProb', 'ctlAmp', 'ctlNorm', 'ctlMul', 'ctlDag', 'ctlUni', 'ctlPhase', 'ctlTarget', 'ctlGates', 'ctlDraws'].concat(DAY4_ONLY).forEach(id => { $(id).hidden = true; });
     $('ctlTen').hidden = i !== 0; $('ctlG2').hidden = i === 0;
+    const d9 = day === 9;
+    $('ctlTen').querySelectorAll('[data-t1="2"], [data-t0="2"]').forEach(b2 => { b2.hidden = d9; });
+    const shown = d9 ? (i === 1 ? ['X0', 'X1', 'C01', 'C10'] : i === 2 ? ['X0', 'X1', 'H0', 'H1', 'CZ'] : ['X0', 'X1', 'H0', 'C01', 'C10', 'SW'])
+      : (i === 1 ? ['X0', 'X1'] : ['X0', 'X1', 'H0', 'H1']);
+    G2ALL.forEach(g => { $('g2' + g).hidden = !shown.includes(g); });
     $('mboard').hidden = false;
     ['stateRow', 'ketLine', 'rowP0', 'rowP1', 'sumLine'].forEach(id => { $(id).hidden = true; });
 
@@ -3048,23 +3161,28 @@ footer p { margin: 0; }
         (T.k8 ? `<span class="ct" id="a4c${k}">1,000번 중 ${big(T.k8[k])}번</span>` : '') + '</div>';
     }).join('');
     let top = '';
+    if (i === 0 && day === 9) $('ctlTen').querySelectorAll('.lbl').forEach((l, k) => { l.textContent = k ? '0번 큐비트 (오른쪽 글자, 제어)' : '1번 큐비트 (왼쪽 글자, 타깃)'; });
+    else $('ctlTen').querySelectorAll('.lbl').forEach((l, k) => { l.textContent = k ? '0번 큐비트 (오른쪽 글자)' : '1번 큐비트 (왼쪽 글자)'; });
     if (i === 0) {
       const u = ONE8[T.t1], w = ONE8[T.t0];
       top = `<p class="kron" id="kron">${ONE8N[T.t1]} ⊗ ${ONE8N[T.t0]} = [${num(u[0], 3)}×${num(w[0], 3)}, ${num(u[0], 3)}×${num(w[1], 3)}, ${num(u[1], 3)}×${num(w[0], 3)}, ${num(u[1], 3)}×${num(w[1], 3)}]</p>`;
       mark('ctlTen', 'data-t1', T.t1); mark('ctlTen', 'data-t0', T.t0);
+      $('ctlTen').querySelectorAll('[data-t1], [data-t0]').forEach(b2 => { b2.disabled = d9 && !f.c0; });
+      if (d9) top = `<p class="mform"><span class="k">CNOT 0→1</span><code id="c8">입력 |${LAB4[2 * T.t1 + T.t0]}&gt; → 출력 ${esc(ket8(d.v))}</code></p>`;
     } else {
-      top = `<p class="mform"><span class="k">회로</span><code id="c8">${T.g8.length ? T.g8.map(g => `${g[0]}(${g[1]}번)`).join(' → ') : '|00&gt;에서 시작'}</code></p>`;
-      $('g2H0').hidden = i === 1; $('g2H1').hidden = i === 1;
+      top = `<p class="mform"><span class="k">회로</span><code id="c8">${T.g8.length ? T.g8.map(g => G2NAME[g]).join(' → ') : '|00&gt;에서 시작'}</code></p>`;
       $('g2Undo').disabled = !T.g8.length; $('g2Clear').disabled = !T.g8.length;
-      $('g2Draw').hidden = i !== 3;
-      const wait = i === 1 && !f.o0;
-      ['g2X0', 'g2X1', 'g2H0', 'g2H1'].forEach(id => { $(id).disabled = wait; });
-      $('g2Rule').textContent = wait ? '먼저 위에서 예측을 골라 주세요.' : i === 3 ? '회로를 만든 뒤 1,000번 측정해 보세요.' : 'X는 그 큐비트의 0과 1을 바꾸고, H는 반반으로 갈라요.';
+      $('g2Draw').hidden = d9 || i !== 3;
+      const wait = !d9 && i === 1 && !f.o0;
+      G2ALL.forEach(g => { $('g2' + g).disabled = wait; });
+      $('g2Rule').textContent = wait ? '먼저 위에서 예측을 골라 주세요.'
+        : d9 ? (i === 1 ? 'CNOT 0→1은 0번이 제어, 1→0은 1번이 제어예요.' : i === 2 ? 'CZ는 |11> 칸의 부호만 뒤집어요.' : 'SWAP은 두 큐비트를 맞바꿔요.')
+          : i === 3 ? '회로를 만든 뒤 1,000번 측정해 보세요.' : 'X는 그 큐비트의 0과 1을 바꾸고, H는 반반으로 갈라요.';
     }
     $('mboard').innerHTML = `${top}<p class="qkey">이름의 <span class="q1">왼쪽 글자는 1번</span>, <span class="q0">오른쪽 글자는 0번</span> 큐비트예요.</p>` +
       `<div class="amp4" role="group" aria-label="네 결과의 진폭과 확률">${rows}</div><p class="mcap sub" id="ket8">${esc(ket8(d.v))}</p>`;
     renderResult(i, false);
-    $('codeTitle').textContent = i === 0 ? '같은 계산을 NumPy로' : '같은 회로를 Qiskit으로';
+    $('codeTitle').textContent = i === 0 && day === 8 ? '같은 계산을 NumPy로' : '같은 회로를 Qiskit으로';
     $('codeLead').textContent = '지금 화면의 계산을 파이썬 코드로 쓰면 이렇게 돼요.';
     $('code').textContent = codeText8();
   }
@@ -3116,8 +3234,8 @@ footer p { margin: 0; }
     $('stateRow').hidden = false;
     if (day !== 5) DAY5_ONLY.forEach(id => { $(id).hidden = true; });
     if (day !== 6) DAY6_ONLY.forEach(id => { $(id).hidden = true; });
-    if (day !== 5 && day !== 7 && day !== 8) $('mboard').hidden = true;
-    if (day !== 8) DAY8_ONLY.forEach(id => { $(id).hidden = true; });
+    if (day !== 5 && day !== 7 && day < 8) $('mboard').hidden = true;
+    if (day < 8) DAY8_ONLY.forEach(id => { $(id).hidden = true; });
     if (day === 1) boardD1(i, snap); else if (day === 2) boardD2(i); else if (day === 3) boardD3(i, snap); else if (day === 4) boardD4(i, snap); else if (day === 5) boardD5(i); else if (day === 6) boardD6(i); else if (day === 7) boardD7(i); else boardD8(i);
   }
 
@@ -3342,8 +3460,8 @@ footer p { margin: 0; }
       T.tr = data.T.tr === true; T.cj = data.T.cj === true;
       if (['Z', 'S', 'T'].includes(data.T.pg)) T.pg = data.T.pg;
       T.tg = clamp(Math.round(Number(data.T.tg)) || 0, 0, TARGETS6.length - 1);
-      T.t1 = clamp(Math.round(Number(data.T.t1)) || 0, 0, 2); T.t0 = clamp(Math.round(Number(data.T.t0)) || 0, 0, 2);
-      T.g8 = (Array.isArray(data.T.g8) ? data.T.g8 : []).filter(g => ['X0', 'X1', 'H0', 'H1'].includes(g)).slice(0, 6);
+      T.t1 = clamp(Math.round(Number(data.T.t1)) || 0, 0, keptDay === 9 ? 1 : 2); T.t0 = clamp(Math.round(Number(data.T.t0)) || 0, 0, keptDay === 9 ? 1 : 2);
+      T.g8 = (Array.isArray(data.T.g8) ? data.T.g8 : []).filter(g => G2ALL.includes(g)).slice(0, 8);
     }
     if (r.blocked) $('dayHint').textContent = blockedHint(r.blocked);
     render(true);
